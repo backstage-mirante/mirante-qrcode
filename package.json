@@ -1,6 +1,6 @@
 {
   "name": "mirante-qr",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Aplicativo desktop para geração de QR codes em lote.",
   "main": "./out/main/index.js",
   "author": "Backstage Mirante",
