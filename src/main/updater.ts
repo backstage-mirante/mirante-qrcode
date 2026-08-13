@@ -7,12 +7,6 @@ import type { UpdateState } from "../shared/contracts"
 const UPDATE_INTERVAL_MS = 4 * 60 * 60 * 1_000
 const { autoUpdater } = electronUpdater
 
-function errorMessage(error: unknown): string {
-  return error instanceof Error
-    ? error.message
-    : "Não foi possível verificar a atualização."
-}
-
 export function configureUpdater(getWindow: () => BrowserWindow | null): void {
   const send = (state: UpdateState): void => {
     getWindow()?.webContents.send("updates:state", state)
@@ -36,7 +30,7 @@ export function configureUpdater(getWindow: () => BrowserWindow | null): void {
     send({ status: "downloaded", version: info.version }),
   )
   autoUpdater.on("error", (error) =>
-    send({ status: "error", message: errorMessage(error) }),
+    send({ status: "error", message: error.message }),
   )
 
   ipcMain.handle("updates:check", async () => {

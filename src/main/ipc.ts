@@ -51,13 +51,8 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
     return Promise.all(paths.map(describeFile))
   })
 
-  ipcMain.handle("files:describe", async (_event, paths: unknown) => {
-    if (
-      !Array.isArray(paths) ||
-      !paths.every((item) => typeof item === "string")
-    ) {
-      throw new Error("Lista de arquivos inválida.")
-    }
+  ipcMain.handle("files:describe", async (_event, paths: string[]) => {
+    if (!Array.isArray(paths)) throw new Error("Lista de arquivos inválida.")
     return Promise.all(validateInputPaths(paths).map(describeFile))
   })
 
@@ -92,14 +87,14 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
     },
   )
 
-  ipcMain.handle("shell:open-output", async (_event, directory: unknown) => {
-    if (typeof directory !== "string") throw new Error("Pasta inválida.")
+  ipcMain.handle("shell:open-output", async (_event, directory: string) => {
+    if (!directory.trim()) throw new Error("Pasta inválida.")
     const result = await shell.openPath(path.resolve(directory))
     if (result) throw new Error(result)
   })
 
-  ipcMain.handle("shell:reveal-file", (_event, filePath: unknown) => {
-    if (typeof filePath !== "string" || !isSafeRevealPath(filePath)) {
+  ipcMain.handle("shell:reveal-file", (_event, filePath: string) => {
+    if (!filePath.trim() || !isSafeRevealPath(filePath)) {
       throw new Error("Arquivo inválido.")
     }
     shell.showItemInFolder(path.resolve(filePath))

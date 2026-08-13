@@ -34,10 +34,6 @@ function mergeFiles(current: InputFile[], incoming: InputFile[]): InputFile[] {
   return Array.from(byPath.values()).slice(0, 100)
 }
 
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Ocorreu um erro inesperado."
-}
-
 export default function App() {
   const [appInfo, setAppInfo] = useState<AppInfo>()
   const [files, setFiles] = useState<InputFile[]>([])
@@ -77,7 +73,11 @@ export default function App() {
       const selected = await window.qrApp.selectFiles()
       setFiles((current) => mergeFiles(current, selected))
     } catch (browseError) {
-      setError(errorMessage(browseError))
+      setError(
+        browseError instanceof Error
+          ? browseError.message
+          : "Ocorreu um erro inesperado.",
+      )
     }
   }
 
@@ -94,7 +94,11 @@ export default function App() {
       const described = await window.qrApp.describeDroppedFiles(supported)
       setFiles((current) => mergeFiles(current, described))
     } catch (dropError) {
-      setError(errorMessage(dropError))
+      setError(
+        dropError instanceof Error
+          ? dropError.message
+          : "Ocorreu um erro inesperado.",
+      )
     }
   }
 
@@ -117,7 +121,11 @@ export default function App() {
         }),
       )
     } catch (generationError) {
-      setError(errorMessage(generationError))
+      setError(
+        generationError instanceof Error
+          ? generationError.message
+          : "Ocorreu um erro inesperado.",
+      )
     } finally {
       setGenerating(false)
     }

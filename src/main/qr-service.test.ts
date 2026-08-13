@@ -88,9 +88,8 @@ describe("processQrFiles", () => {
       "example.com-2.png",
     ])
     const zip = await JSZip.loadAsync(await readFile(result.zipPath))
-    expect(Object.keys(zip.files).sort()).toEqual([
-      "example.com-2.png",
-      "example.com.png",
-    ])
+    expect(new Set(Object.keys(zip.files))).toEqual(
+      new Set(["example.com-2.png", "example.com.png"]),
+    )
   })
 })

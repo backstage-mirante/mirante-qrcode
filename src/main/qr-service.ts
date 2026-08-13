@@ -5,6 +5,7 @@ import path from "node:path"
 import JSZip from "jszip"
 import QRCode from "qrcode"
 import readXlsxFile from "read-excel-file/node"
+import type { SheetData } from "read-excel-file/node"
 
 import type {
   GeneratedQrCode,
@@ -19,6 +20,13 @@ interface QrEntry {
   sourceFile: string
 }
 
+interface EntryParseResult {
+  entries: QrEntry[]
+  warnings: GenerationWarning[]
+}
+
+type SpreadsheetCell = SheetData[number][number] | Date
+
 interface ProcessOptions {
   paths: string[]
   outputRoot: string
@@ -29,16 +37,13 @@ interface ProcessOptions {
 const SUPPORTED_EXTENSIONS = new Set([".txt", ".xlsx"])
 const HEADER_SCAN_LIMIT = 10
 
-function cellString(value: unknown): string {
-  if (typeof value === "string") return value
-  if (typeof value === "number" || typeof value === "boolean") {
-    return String(value)
-  }
+function cellString(value: SpreadsheetCell): string {
+  if (value === null) return ""
   if (value instanceof Date) return value.toISOString()
-  return ""
+  return String(value)
 }
 
-function normalizeHeader(value: unknown): string {
+function normalizeHeader(value: SpreadsheetCell): string {
   return cellString(value)
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -51,7 +56,7 @@ export function sanitizeFilename(value: string): string {
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[<>:"/\\|?*]/g, "")
-    // eslint-disable-next-line no-control-regex -- Windows forbids these characters in filenames.
+    // oxlint-disable-next-line no-control-regex -- Windows forbids these characters in filenames.
     .replace(/[\u0000-\u001F]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
@@ -90,7 +95,7 @@ function urlFilename(url: URL): string {
 export function parseTextEntries(
   content: string,
   sourceFile: string,
-): { entries: QrEntry[]; warnings: GenerationWarning[] } {
+): EntryParseResult {
   const entries: QrEntry[] = []
   const warnings: GenerationWarning[] = []
 
@@ -125,10 +130,10 @@ function findColumn(
 }
 
 export function parseWorksheetEntries(
-  rows: unknown[][],
+  rows: SheetData,
   sheetName: string,
   sourceFile: string,
-): { entries: QrEntry[]; warnings: GenerationWarning[] } {
+): EntryParseResult {
   const entries: QrEntry[] = []
   const warnings: GenerationWarning[] = []
 

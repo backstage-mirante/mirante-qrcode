@@ -12,6 +12,8 @@ Aplicativo desktop para gerar QR codes em lote a partir de planilhas de contatos
 
 O aplicativo cria uma pasta com os arquivos PNG e um `QR-Codes.zip`. Quando houver uma versão nova, um aviso aparecerá dentro do aplicativo.
 
+O instalador já inclui tudo que a aplicação precisa. O usuário não precisa instalar Node.js, Python ou qualquer outra dependência.
+
 > Enquanto o repositório estiver privado, downloads e atualizações pelo GitHub exigem acesso à organização. Torne o repositório público antes da distribuição geral.
 
 ## Formatos aceitos
@@ -38,7 +40,7 @@ backstagemirante.com/visita
 
 ## Desenvolvimento
 
-Requisitos: Node.js 24 LTS e npm.
+Node.js 24 e npm são requisitos somente para desenvolvimento, nunca para quem instala a aplicação.
 
 ```bash
 npm ci
@@ -82,4 +84,25 @@ O renderer não tem acesso direto ao Node.js. As operações privilegiadas passa
 
 ## Assinatura do Windows
 
-Os builds são reproduzíveis, mas inicialmente não são assinados. O Windows pode mostrar o aviso “Editor desconhecido”. Para uma distribuição sem esse alerta, configure posteriormente um certificado de assinatura de código ou Azure Trusted Signing nos secrets do repositório.
+O workflow de Release exige assinatura Authenticode via Microsoft Azure Artifact Signing e interrompe a publicação se alguma credencial estiver ausente. Isso evita distribuir acidentalmente outra versão que o Smart App Control bloqueará.
+
+Configure estes **Secrets** do GitHub Actions:
+
+- `AZURE_TENANT_ID`
+- `AZURE_CLIENT_ID`
+- `AZURE_CLIENT_SECRET`
+
+Configure estas **Variables** do GitHub Actions:
+
+- `AZURE_SIGNING_ENDPOINT` — para Brazil South: `https://brs.codesigning.azure.net/`
+- `AZURE_CODE_SIGNING_ACCOUNT_NAME`
+- `AZURE_CERTIFICATE_PROFILE_NAME`
+- `AZURE_PUBLISHER_NAME` — exatamente o Subject emitido no certificado
+
+Use um perfil **Public Trust**. Depois da configuração, publique uma versão nova; uma Release antiga e sem assinatura não pode ser corrigida pelo auto-update.
+
+Quando o repositório estiver público, também é possível solicitar gratuitamente a assinatura pela SignPath Foundation. A aceitação depende dos critérios e da aprovação da fundação, portanto essa alternativa não é automática.
+
+## Tamanho do instalador
+
+As dependências JavaScript são incorporadas ao bundle antes do empacotamento, evitando duplicá-las no instalador. Apenas os idiomas `pt-BR` e `en-US` do Chromium são mantidos. O arquivo da aplicação caiu de aproximadamente 105 MB para menos de 2 MB; o restante é o runtime obrigatório do Electron.

@@ -1,5 +1,6 @@
-import { readFile } from "node:fs/promises"
 import process from "node:process"
+
+import packageJson from "../package.json" with { type: "json" }
 
 const requested = process.argv[2]
 const pattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/
@@ -8,14 +9,7 @@ if (!requested || !pattern.test(requested)) {
   throw new Error("Informe uma versão SemVer estável, por exemplo 1.2.0.")
 }
 
-/** @type {unknown} */
-const packageJson = JSON.parse(await readFile("package.json", "utf8"))
-if (
-  typeof packageJson !== "object" ||
-  packageJson === null ||
-  !("version" in packageJson) ||
-  typeof packageJson.version !== "string"
-) {
+if (!pattern.test(packageJson.version)) {
   throw new Error("package.json não contém uma versão válida.")
 }
 const current = packageJson.version

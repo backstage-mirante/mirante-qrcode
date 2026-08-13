@@ -85,6 +85,16 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 30
 
+    env:
+      REQUIRE_WINDOWS_SIGNING: "true"
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_SIGNING_ENDPOINT: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+      AZURE_CODE_SIGNING_ACCOUNT_NAME: ${{ vars.AZURE_CODE_SIGNING_ACCOUNT_NAME }}
+      AZURE_CERTIFICATE_PROFILE_NAME: ${{ vars.AZURE_CERTIFICATE_PROFILE_NAME }}
+      AZURE_PUBLISHER_NAME: ${{ vars.AZURE_PUBLISHER_NAME }}
+
     steps:
       - name: Baixar código
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -104,7 +114,30 @@ jobs:
           RELEASE_VERSION: ${{ needs.metadata.outputs.version }}
         run: npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
 
-      - name: Gerar instalador e metadados de atualização
+      - name: Validar configuração de assinatura
+        shell: bash
+        run: |
+          required=(
+            AZURE_TENANT_ID
+            AZURE_CLIENT_ID
+            AZURE_CLIENT_SECRET
+            AZURE_SIGNING_ENDPOINT
+            AZURE_CODE_SIGNING_ACCOUNT_NAME
+            AZURE_CERTIFICATE_PROFILE_NAME
+            AZURE_PUBLISHER_NAME
+          )
+
+          missing=0
+          for name in "${required[@]}"; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Configuração ausente: ${name}"
+              missing=1
+            fi
+          done
+
+          exit "${missing}"
+
+      - name: Gerar e assinar instalador e metadados de atualização
         run: npm run package:win
 
       - name: Guardar artefatos da versão
