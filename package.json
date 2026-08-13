@@ -8,13 +8,16 @@
   "type": "module",
   "scripts": {
     "dev": "electron-vite dev",
+    "dev:web": "vite --config vite.web.config.ts",
     "assets": "node scripts/generate-assets.mjs",
-    "build": "node scripts/clean-output.mjs && electron-vite build",
+    "build": "npm run build:desktop",
+    "build:desktop": "node scripts/clean-output.mjs && electron-vite build",
+    "build:web": "npm run assets && vite build --config vite.web.config.ts",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "npm run lint && npm run typecheck && npm run test && npm run build",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run build:desktop && npm run build:web",
     "package:win": "npm run assets && npm run build && electron-builder --config electron-builder.config.cjs --win nsis --publish never",
     "package:store": "npm run assets && npm run build && electron-builder --config electron-builder.config.cjs --win --dir --publish never && node scripts/package-msix.mjs"
   },
@@ -49,6 +52,7 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^7.3.6",
+    "vite-plugin-pwa": "^1.3.0",
     "vitest": "^4.1.10"
   }
 }
