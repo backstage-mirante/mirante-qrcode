@@ -13,6 +13,13 @@ updates:
         dependency-type: production
       development-dependencies:
         dependency-type: development
+    ignore:
+      # electron-vite 5 aceita Vite apenas até a major 7. O plugin React 6 exige
+      # Vite 8; remover estes bloqueios assim que electron-vite declarar suporte.
+      - dependency-name: vite
+        update-types: [version-update:semver-major]
+      - dependency-name: "@vitejs/plugin-react"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: github-actions
     directory: /
@@ -22,3 +29,6 @@ updates:
       time: "09:30"
       timezone: America/Sao_Paulo
     open-pull-requests-limit: 3
+    groups:
+      github-actions:
+        patterns: ["*"]
