@@ -1,0 +1,17 @@
+node_modules/
+out/
+release/
+coverage/
+.vite/
+*.log
+
+build/icon.ico
+build/icon.png
+
+.env
+.env.*
+!.env.example
+
+.DS_Store
+Thumbs.db
+desktop.ini
