@@ -6,8 +6,11 @@ import JSZip from "jszip"
 import { describe, expect, it } from "vitest"
 
 import {
-  parseTextEntries,
+  inspectWorksheetColumns,
   parseWorksheetEntries,
+} from "../shared/qr-core"
+import {
+  parseTextEntries,
   processQrFiles,
   sanitizeFilename,
   validateInputPaths,
@@ -53,6 +56,43 @@ describe("parseWorksheetEntries", () => {
     ]
 
     const result = parseWorksheetEntries(rows, "Contatos", "contatos.xlsx")
+    expect(result.entries).toEqual([
+      {
+        filename: "Ana-Lima.png",
+        value: "https://wa.me/5511999990000",
+        sourceFile: "contatos.xlsx",
+      },
+    ])
+  })
+
+  it("sugere a linha de cabeçalho mesmo com títulos desconhecidos", () => {
+    const rows = [
+      ["Relatório"],
+      ["Pessoa responsável", "Número principal"],
+      ["Ana Lima", "(11) 99999-0000"],
+    ]
+
+    const inspection = inspectWorksheetColumns(rows)
+    expect(inspection.suggestedHeaderRow).toBe(1)
+    expect(inspection.headerRows[1]?.columns.map((column) => column.label)).toEqual(
+      ["A — Pessoa responsável", "B — Número principal"],
+    )
+  })
+
+  it("usa o mapeamento manual quando o cabeçalho não é reconhecido", () => {
+    const rows = [
+      ["Relatório"],
+      ["Pessoa responsável", "Número principal"],
+      ["Ana Lima", "(11) 99999-0000"],
+    ]
+
+    const result = parseWorksheetEntries(
+      rows,
+      "Contatos",
+      "contatos.xlsx",
+      { headerRow: 1, nameColumn: 0, phoneColumn: 1 },
+    )
+
     expect(result.entries).toEqual([
       {
         filename: "Ana-Lima.png",

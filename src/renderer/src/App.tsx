@@ -16,6 +16,7 @@ import { useEffect, useMemo, useState } from "react"
 import { DropZone } from "@renderer/components/drop-zone"
 import { PwaInstallButton } from "@renderer/components/pwa-install-button"
 import { ResultsGallery } from "@renderer/components/results-gallery"
+import { SpreadsheetMappingPanel } from "@renderer/components/spreadsheet-mapping-panel"
 import { Badge } from "@renderer/components/ui/badge"
 import { Button } from "@renderer/components/ui/button"
 import { Progress } from "@renderer/components/ui/progress"
@@ -27,6 +28,7 @@ import type {
   GenerationSummary,
   InputFile,
   UpdateState,
+  WorksheetColumnMapping,
 } from "@shared/contracts"
 
 function mergeFiles(current: InputFile[], incoming: InputFile[]): InputFile[] {
@@ -67,6 +69,37 @@ export default function App() {
   const progressPercent = progress
     ? (progress.completed / Math.max(progress.total, 1)) * 100
     : 0
+  const hasPendingMappings = files.some((file) =>
+    file.spreadsheet?.sheets.some(
+      (sheet) =>
+        sheet.manualMappingRequired &&
+        !sheet.mapping.ignored &&
+        (sheet.mapping.nameColumn === undefined ||
+          sheet.mapping.phoneColumn === undefined ||
+          sheet.mapping.nameColumn === sheet.mapping.phoneColumn),
+    ),
+  )
+
+  function updateWorksheetMapping(
+    filePath: string,
+    sheetName: string,
+    mapping: WorksheetColumnMapping,
+  ): void {
+    setFiles((current) =>
+      current.map((file) => {
+        if (file.path !== filePath || !file.spreadsheet) return file
+        return {
+          ...file,
+          spreadsheet: {
+            ...file.spreadsheet,
+            sheets: file.spreadsheet.sheets.map((sheet) =>
+              sheet.sheetName === sheetName ? { ...sheet, mapping } : sheet,
+            ),
+          },
+        }
+      }),
+    )
+  }
 
   async function browse(): Promise<void> {
     try {
@@ -110,6 +143,10 @@ export default function App() {
 
   async function generate(): Promise<void> {
     if (files.length === 0) return
+    if (hasPendingMappings) {
+      setError("Confirme as colunas pendentes antes de gerar os QR codes.")
+      return
+    }
     setGenerating(true)
     setError(undefined)
     setSummary(undefined)
@@ -119,6 +156,13 @@ export default function App() {
         await window.qrApp.generate({
           paths: files.map((file) => file.path),
           outputRoot: outputDirectory,
+          spreadsheetMappings: files.flatMap((file) =>
+            (file.spreadsheet?.sheets ?? []).map((sheet) => ({
+              path: file.path,
+              sheetName: sheet.sheetName,
+              ...sheet.mapping,
+            })),
+          ),
         }),
       )
     } catch (generationError) {
@@ -212,6 +256,13 @@ export default function App() {
               onBrowse={() => void browse()}
               onDropFiles={(dropped) => void addDroppedFiles(dropped)}
             />
+
+            {appInfo?.platform === "web" && (
+              <SpreadsheetMappingPanel
+                files={files}
+                onChange={updateWorksheetMapping}
+              />
+            )}
 
             {error && (
               <div className="mt-4 flex items-start gap-3 rounded-xl border border-rose-400/20 bg-rose-400/[.08] p-4 text-sm text-rose-200">
@@ -339,7 +390,9 @@ export default function App() {
             ) : (
               <Button
                 className="w-full"
-                disabled={files.length === 0 || !outputDirectory}
+                disabled={
+                  files.length === 0 || !outputDirectory || hasPendingMappings
+                }
                 size="lg"
                 onClick={() => void generate()}
               >
@@ -353,8 +406,8 @@ export default function App() {
                   className="mt-0.5 shrink-0 text-emerald-400"
                   size={14}
                 />
-                Planilhas precisam das colunas Nome e Celular. Sobrenome é
-                opcional.
+                O aplicativo detecta Nome e Celular automaticamente. Se não
+                encontrar, você poderá escolher as colunas após o upload.
               </p>
             </div>
           </aside>

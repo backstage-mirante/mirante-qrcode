@@ -10,7 +10,7 @@ describe("processQrFilesInBrowser", () => {
     })
 
     const result = await processQrFilesInBrowser({
-      files: [input],
+      files: [{ path: "web:links.txt", file: input }],
       now: new Date(2026, 7, 13, 12, 30, 0),
     })
 

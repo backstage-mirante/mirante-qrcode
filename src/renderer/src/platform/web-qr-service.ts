@@ -7,6 +7,7 @@ import type {
   GenerationProgress,
   GenerationSummary,
   GenerationWarning,
+  SpreadsheetMappingRequest,
 } from "@shared/contracts"
 import {
   parseTextEntries,
@@ -17,9 +18,15 @@ import {
 import type { QrEntry } from "@shared/qr-core"
 
 interface ProcessBrowserOptions {
-  files: File[]
+  files: BrowserInputFile[]
+  spreadsheetMappings?: SpreadsheetMappingRequest[]
   onProgress?: (progress: GenerationProgress) => void
   now?: Date
+}
+
+export interface BrowserInputFile {
+  path: string
+  file: File
 }
 
 export interface BrowserGenerationResult {
@@ -40,6 +47,7 @@ function pngBytes(dataUrl: string): Uint8Array {
 
 export async function processQrFilesInBrowser({
   files,
+  spreadsheetMappings = [],
   onProgress,
   now = new Date(),
 }: ProcessBrowserOptions): Promise<BrowserGenerationResult> {
@@ -49,8 +57,15 @@ export async function processQrFilesInBrowser({
 
   const warnings: GenerationWarning[] = []
   const entries: QrEntry[] = []
+  const mappings = new Map(
+    spreadsheetMappings.map((mapping) => [
+      `${mapping.path}\u0000${mapping.sheetName}`,
+      mapping,
+    ]),
+  )
 
-  for (const file of files) {
+  for (const input of files) {
+    const { file, path } = input
     try {
       if (/\.txt$/i.test(file.name)) {
         const parsed = parseTextEntries(await file.text(), file.name)
@@ -59,10 +74,13 @@ export async function processQrFilesInBrowser({
       } else if (/\.xlsx$/i.test(file.name)) {
         const sheets = await readXlsxFile(file)
         for (const sheet of sheets) {
+          const mapping = mappings.get(`${path}\u0000${sheet.sheet}`)
+          if (mapping?.ignored) continue
           const parsed = parseWorksheetEntries(
             sheet.data,
             sheet.sheet,
             file.name,
+            mapping,
           )
           entries.push(...parsed.entries)
           warnings.push(...parsed.warnings)

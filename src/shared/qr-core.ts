@@ -1,6 +1,10 @@
 import type { SheetData } from "read-excel-file/browser"
 
 import type { GenerationWarning } from "./contracts"
+import type {
+  SpreadsheetHeaderRow,
+  WorksheetColumnMapping,
+} from "./contracts"
 
 export interface QrEntry {
   filename: string
@@ -109,10 +113,119 @@ function findColumn(
   return headers.findIndex((header) => acceptedNames.includes(header))
 }
 
+function columnLetter(index: number): string {
+  let value = index + 1
+  let result = ""
+
+  while (value > 0) {
+    value -= 1
+    result = String.fromCharCode(65 + (value % 26)) + result
+    value = Math.floor(value / 26)
+  }
+
+  return result
+}
+
+function headerColumns(
+  row: SheetData[number] | undefined,
+  width: number,
+) {
+  return Array.from({ length: width }, (_, index) => {
+    const value = cellString(row?.[index] ?? null).trim()
+    return {
+      index,
+      label: `${columnLetter(index)} — ${value || "Sem título"}`,
+    }
+  })
+}
+
+export interface WorksheetColumnInspection {
+  headerRows: SpreadsheetHeaderRow[]
+  suggestedHeaderRow: number
+  hasTabularData: boolean
+}
+
+export function inspectWorksheetColumns(
+  rows: SheetData,
+): WorksheetColumnInspection {
+  const scannedRows = rows.slice(0, HEADER_SCAN_LIMIT)
+  const width = scannedRows.reduce(
+    (largest, row) => Math.max(largest, row.length),
+    0,
+  )
+
+  const headerRows = scannedRows
+    .map((row, index): SpreadsheetHeaderRow | undefined => {
+      const normalized = row.map(normalizeHeader)
+      const nonEmpty = normalized.filter(Boolean)
+      if (nonEmpty.length === 0) return undefined
+
+      const detectedNameColumn = findColumn(normalized, [
+        "NOME",
+        "PRIMEIRO NOME",
+      ])
+      const detectedLastNameColumn = findColumn(normalized, [
+        "SOBRENOME",
+        "ULTIMO NOME",
+      ])
+      const detectedPhoneColumn = findColumn(normalized, [
+        "CELULAR",
+        "TELEFONE",
+        "WHATSAPP",
+      ])
+      const preview = row
+        .map((value) => cellString(value).trim())
+        .filter(Boolean)
+        .slice(0, 3)
+        .join(" · ")
+
+      return {
+        index,
+        label: `Linha ${index + 1}${preview ? ` — ${preview}` : ""}`,
+        columns: headerColumns(row, width),
+        detectedNameColumn:
+          detectedNameColumn >= 0 ? detectedNameColumn : undefined,
+        detectedLastNameColumn:
+          detectedLastNameColumn >= 0 ? detectedLastNameColumn : undefined,
+        detectedPhoneColumn:
+          detectedPhoneColumn >= 0 ? detectedPhoneColumn : undefined,
+      }
+    })
+    .filter((row): row is SpreadsheetHeaderRow => Boolean(row))
+
+  const suggested = headerRows.reduce<SpreadsheetHeaderRow | undefined>(
+    (best, candidate) => {
+      const score =
+        (candidate.detectedNameColumn === undefined ? 0 : 100) +
+        (candidate.detectedPhoneColumn === undefined ? 0 : 100) +
+        (candidate.detectedLastNameColumn === undefined ? 0 : 10) +
+        candidate.columns.filter((column) => !column.label.endsWith("Sem título"))
+          .length
+      const bestScore = best
+        ? (best.detectedNameColumn === undefined ? 0 : 100) +
+          (best.detectedPhoneColumn === undefined ? 0 : 100) +
+          (best.detectedLastNameColumn === undefined ? 0 : 10) +
+          best.columns.filter(
+            (column) => !column.label.endsWith("Sem título"),
+          ).length
+        : -1
+      return score > bestScore ? candidate : best
+    },
+    undefined,
+  )
+
+  return {
+    headerRows,
+    suggestedHeaderRow: suggested?.index ?? 0,
+    hasTabularData: width >= 2 && headerRows.length > 0,
+  }
+}
+
 export function parseWorksheetEntries(
   rows: SheetData,
   sheetName: string,
   sourceFile: string,
+  mapping?: WorksheetColumnMapping,
 ): EntryParseResult {
   const entries: QrEntry[] = []
   const warnings: GenerationWarning[] = []
@@ -121,20 +234,33 @@ export function parseWorksheetEntries(
   let columns:
     { firstName: number; lastName: number; phone: number } | undefined
 
-  for (
-    let index = 0;
-    index < Math.min(rows.length, HEADER_SCAN_LIMIT);
-    index += 1
+  if (
+    mapping &&
+    mapping.nameColumn !== undefined &&
+    mapping.phoneColumn !== undefined
   ) {
-    const headers = (rows[index] ?? []).map(normalizeHeader)
-    const firstName = findColumn(headers, ["NOME", "PRIMEIRO NOME"])
-    const lastName = findColumn(headers, ["SOBRENOME", "ULTIMO NOME"])
-    const phone = findColumn(headers, ["CELULAR", "TELEFONE", "WHATSAPP"])
+    headerIndex = mapping.headerRow
+    columns = {
+      firstName: mapping.nameColumn,
+      lastName: mapping.lastNameColumn ?? -1,
+      phone: mapping.phoneColumn,
+    }
+  } else {
+    for (
+      let index = 0;
+      index < Math.min(rows.length, HEADER_SCAN_LIMIT);
+      index += 1
+    ) {
+      const headers = (rows[index] ?? []).map(normalizeHeader)
+      const firstName = findColumn(headers, ["NOME", "PRIMEIRO NOME"])
+      const lastName = findColumn(headers, ["SOBRENOME", "ULTIMO NOME"])
+      const phone = findColumn(headers, ["CELULAR", "TELEFONE", "WHATSAPP"])
 
-    if (firstName >= 0 && phone >= 0) {
-      headerIndex = index
-      columns = { firstName, lastName, phone }
-      break
+      if (firstName >= 0 && phone >= 0) {
+        headerIndex = index
+        columns = { firstName, lastName, phone }
+        break
+      }
     }
   }
 

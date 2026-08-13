@@ -1,16 +1,57 @@
 export type InputKind = "txt" | "xlsx"
 export type RuntimePlatform = "desktop" | "web"
 
+export interface SpreadsheetColumnOption {
+  index: number
+  label: string
+}
+
+export interface SpreadsheetHeaderRow {
+  index: number
+  label: string
+  columns: SpreadsheetColumnOption[]
+  detectedNameColumn?: number
+  detectedLastNameColumn?: number
+  detectedPhoneColumn?: number
+}
+
+export interface WorksheetColumnMapping {
+  headerRow: number
+  nameColumn?: number
+  lastNameColumn?: number
+  phoneColumn?: number
+  ignored?: boolean
+}
+
+export interface SpreadsheetSheetAnalysis {
+  sheetName: string
+  headerRows: SpreadsheetHeaderRow[]
+  mapping: WorksheetColumnMapping
+  manualMappingRequired: boolean
+}
+
+export interface SpreadsheetAnalysis {
+  sheets: SpreadsheetSheetAnalysis[]
+  error?: string
+}
+
 export interface InputFile {
   path: string
   name: string
   size: number
   kind: InputKind
+  spreadsheet?: SpreadsheetAnalysis
+}
+
+export interface SpreadsheetMappingRequest extends WorksheetColumnMapping {
+  path: string
+  sheetName: string
 }
 
 export interface GenerateRequest {
   paths: string[]
   outputRoot?: string
+  spreadsheetMappings?: SpreadsheetMappingRequest[]
 }
 
 export interface GeneratedQrCode {
