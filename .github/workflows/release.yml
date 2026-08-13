@@ -1,0 +1,178 @@
+name: Publicar versão para Windows
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Nova versão, sem v (exemplo: 1.1.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-release
+  cancel-in-progress: false
+
+jobs:
+  metadata:
+    name: Resolver versão
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      should-release: ${{ steps.release.outputs.should-release }}
+
+    steps:
+      - name: Baixar código e tags
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolver versão solicitada
+        id: release
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            VERSION="${REQUESTED_VERSION}"
+            node scripts/validate-release-version.mjs "${VERSION}"
+          else
+            VERSION="$(node -p "require('./package.json').version")"
+          fi
+
+          if git rev-parse --quiet --verify "refs/tags/v${VERSION}" >/dev/null; then
+            SHOULD_RELEASE="false"
+          else
+            SHOULD_RELEASE="true"
+          fi
+
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "should-release=${SHOULD_RELEASE}" >> "${GITHUB_OUTPUT}"
+
+  validate:
+    name: Validar versão e projeto
+    needs: metadata
+    if: needs.metadata.outputs['should-release'] == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Instalar dependências reproduzíveis
+        run: npm ci --ignore-scripts
+
+      - name: Auditar dependências de produção
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Verificar projeto
+        run: npm run check
+
+  build:
+    name: Criar instalador NSIS
+    needs: [metadata, validate]
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Instalar dependências reproduzíveis
+        run: npm ci
+
+      - name: Aplicar versão ao pacote
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ needs.metadata.outputs.version }}
+        run: npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
+
+      - name: Gerar instalador e metadados de atualização
+        run: npm run package:win
+
+      - name: Guardar artefatos da versão
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: windows-release-${{ needs.metadata.outputs.version }}
+          path: |
+            release/*.exe
+            release/*.blockmap
+            release/latest.yml
+          if-no-files-found: error
+          retention-days: 3
+
+  publish:
+    name: Criar commit, tag e Release
+    needs: [metadata, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Baixar artefatos validados
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: windows-release-${{ needs.metadata.outputs.version }}
+          path: artifacts
+
+      - name: Registrar versão no repositório
+        env:
+          RELEASE_VERSION: ${{ needs.metadata.outputs.version }}
+        run: |
+          npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(release): v${RELEASE_VERSION}"
+          fi
+          git tag -a "v${RELEASE_VERSION}" -m "v${RELEASE_VERSION}"
+          git push origin HEAD:main --follow-tags
+
+      - name: Atestar instalador
+        if: ${{ !github.event.repository.private }}
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        with:
+          subject-path: artifacts/*.exe
+
+      - name: Publicar GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ needs.metadata.outputs.version }}
+        run: |
+          gh release create "v${RELEASE_VERSION}" artifacts/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "Mirante QR v${RELEASE_VERSION}" \
+            --generate-notes \
+            --verify-tag

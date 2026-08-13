@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "rhea",
+  "rsc": false,
+  "tsx": true,
+  "iconLibrary": "tabler",
+  "tailwind": {
+    "config": "",
+    "css": "src/renderer/src/styles/globals.css",
+    "baseColor": "mauve",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "aliases": {
+    "components": "@renderer/components",
+    "utils": "@renderer/lib/utils",
+    "ui": "@renderer/components/ui",
+    "lib": "@renderer/lib",
+    "hooks": "@renderer/hooks"
+  }
+}
