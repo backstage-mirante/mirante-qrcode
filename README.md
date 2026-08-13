@@ -84,7 +84,7 @@ O renderer não tem acesso direto ao Node.js. As operações privilegiadas passa
 
 ## Assinatura do Windows
 
-O workflow de Release exige assinatura Authenticode via Microsoft Azure Artifact Signing e interrompe a publicação se alguma credencial estiver ausente. Isso evita distribuir acidentalmente outra versão que o Smart App Control bloqueará.
+O workflow de Release permite publicação sem assinatura enquanto `REQUIRE_WINDOWS_SIGNING` não estiver habilitada. Esses instaladores podem ser bloqueados pelo Smart App Control. Para exigir assinatura Authenticode via Microsoft Azure Artifact Signing, configure a Variable `REQUIRE_WINDOWS_SIGNING` como `true`; nesse modo, o workflow interrompe a publicação se alguma credencial estiver ausente.
 
 Configure estes **Secrets** do GitHub Actions:
 
@@ -94,6 +94,7 @@ Configure estes **Secrets** do GitHub Actions:
 
 Configure estas **Variables** do GitHub Actions:
 
+- `REQUIRE_WINDOWS_SIGNING` — use `true` para proibir Releases sem assinatura
 - `AZURE_SIGNING_ENDPOINT` — para Brazil South: `https://brs.codesigning.azure.net/`
 - `AZURE_CODE_SIGNING_ACCOUNT_NAME`
 - `AZURE_CERTIFICATE_PROFILE_NAME`
