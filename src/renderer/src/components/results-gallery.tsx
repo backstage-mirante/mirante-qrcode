@@ -2,13 +2,14 @@ import { IconFolderOpen, IconPackage, IconPhoto } from "@tabler/icons-react"
 
 import { Badge } from "@renderer/components/ui/badge"
 import { Button } from "@renderer/components/ui/button"
-import type { GenerationSummary } from "@shared/contracts"
+import type { GenerationSummary, RuntimePlatform } from "@shared/contracts"
 
 interface ResultsGalleryProps {
   summary: GenerationSummary
+  platform: RuntimePlatform
 }
 
-export function ResultsGallery({ summary }: ResultsGalleryProps) {
+export function ResultsGallery({ platform, summary }: ResultsGalleryProps) {
   return (
     <section className="mt-5 overflow-hidden rounded-2xl border border-emerald-400/15 bg-emerald-400/[.035]">
       <div className="flex flex-wrap items-center gap-3 border-b border-white/[.07] p-5">
@@ -31,7 +32,8 @@ export function ResultsGallery({ summary }: ResultsGalleryProps) {
             void window.qrApp.openOutputDirectory(summary.outputDirectory)
           }
         >
-          <IconFolderOpen /> Abrir pasta
+          <IconFolderOpen />
+          {platform === "web" ? "Baixar ZIP novamente" : "Abrir pasta"}
         </Button>
       </div>
 

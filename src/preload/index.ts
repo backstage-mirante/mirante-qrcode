@@ -6,10 +6,11 @@ import type {
   GenerationProgress,
   GenerationSummary,
   InputFile,
+  QrAppApi,
   UpdateState,
 } from "../shared/contracts"
 
-const api = {
+const api: QrAppApi = {
   getAppInfo: (): Promise<AppInfo> => ipcRenderer.invoke("app:info"),
   selectFiles: (): Promise<InputFile[]> => ipcRenderer.invoke("files:select"),
   describeDroppedFiles: (files: File[]): Promise<InputFile[]> => {
@@ -47,5 +48,3 @@ const api = {
 }
 
 contextBridge.exposeInMainWorld("qrApp", api)
-
-export type QrAppApi = typeof api

@@ -2,6 +2,8 @@
 
 Aplicativo desktop para gerar QR codes em lote a partir de planilhas de contatos ou listas de URLs. Todo o processamento acontece localmente no computador.
 
+Também há uma versão PWA instalável pelo navegador. Ela mantém o processamento no dispositivo e entrega o lote em um único arquivo ZIP, sem exigir instalador.
+
 ## Para quem só quer usar
 
 1. Abra a página **Releases** do repositório.
@@ -15,6 +17,15 @@ O aplicativo cria uma pasta com os arquivos PNG e um `QR-Codes.zip`. Quando houv
 O instalador já inclui tudo que a aplicação precisa. O usuário não precisa instalar Node.js, Python ou qualquer outra dependência.
 
 > Enquanto o repositório estiver privado, downloads e atualizações pelo GitHub exigem acesso à organização. Torne o repositório público antes da distribuição geral.
+
+## Usar pelo navegador
+
+1. Abra a URL publicada pela Vercel no Microsoft Edge ou Google Chrome.
+2. Clique em **Instalar aplicativo**. Se o navegador ainda não exibir a opção, use o menu e escolha **Instalar Mirante QR**.
+3. Adicione arquivos `.xlsx` ou `.txt`.
+4. Clique em **Gerar QR codes** para baixar `QR-Codes_data_hora.zip`.
+
+A PWA continua disponível offline depois do primeiro carregamento completo. Arquivos importados e QR codes permanecem no dispositivo; não existe upload para a Vercel.
 
 ## Formatos aceitos
 
@@ -47,11 +58,26 @@ npm ci
 npm run dev
 ```
 
+Desenvolvimento da PWA:
+
+```bash
+npm run dev:web
+```
+
 Verificação completa:
 
 ```bash
 npm run check
 ```
+
+## Publicar a PWA na Vercel
+
+1. Importe `backstage-mirante/mirante-qrcode` como um projeto na Vercel.
+2. Mantenha o diretório raiz do repositório.
+3. A Vercel lerá `vercel.json`, executará `npm run build:web` e publicará `dist-web`.
+4. Vincule o domínio desejado quando o primeiro deploy estiver validado.
+
+Cada push na branch de produção gera uma versão nova. O Service Worker atualiza os arquivos do aplicativo automaticamente; os dados de entrada não passam pelos servidores da Vercel.
 
 Empacotamento Windows:
 

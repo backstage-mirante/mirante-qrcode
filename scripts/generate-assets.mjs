@@ -8,6 +8,7 @@ const source = resolve("build/icon.svg")
 const pngPath = resolve("build/icon.png")
 const icoPath = resolve("build/icon.ico")
 const msixAssetsPath = resolve("build/msix-assets")
+const pwaAssetsPath = resolve("public")
 
 const svg = await readFile(source)
 await sharp(svg).resize(512, 512).png().toFile(pngPath)
@@ -15,6 +16,7 @@ const ico = await pngToIco(pngPath)
 await writeFile(icoPath, ico)
 
 await mkdir(msixAssetsPath, { recursive: true })
+await mkdir(pwaAssetsPath, { recursive: true })
 
 const writeMsixAsset = async (name, width, height) => {
   await sharp(svg)
@@ -36,4 +38,17 @@ await Promise.all([
   writeMsixAsset("Square150x150Logo.png", 150, 150),
   writeMsixAsset("Square150x150Logo.scale-200.png", 300, 300),
   writeMsixAsset("Wide310x150Logo.scale-200.png", 620, 300),
+  sharp(svg).resize(192, 192).png().toFile(resolve(pwaAssetsPath, "pwa-192x192.png")),
+  sharp(svg).resize(512, 512).png().toFile(resolve(pwaAssetsPath, "pwa-512x512.png")),
+  sharp(svg)
+    .resize(410, 410, { fit: "contain" })
+    .extend({
+      top: 51,
+      bottom: 51,
+      left: 51,
+      right: 51,
+      background: "#0b0a12",
+    })
+    .png()
+    .toFile(resolve(pwaAssetsPath, "pwa-maskable-512x512.png")),
 ])

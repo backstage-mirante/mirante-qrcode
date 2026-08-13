@@ -30,6 +30,7 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
     version: app.getVersion(),
     packaged: app.isPackaged,
     defaultOutputDirectory: path.join(app.getPath("downloads"), "Mirante QR"),
+    platform: "desktop" as const,
   }))
 
   ipcMain.handle("files:select", async () => {
