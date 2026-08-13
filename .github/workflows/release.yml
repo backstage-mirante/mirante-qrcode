@@ -79,6 +79,9 @@ jobs:
       - name: Auditar toda a árvore de dependências
         run: npm audit --audit-level=high
 
+      - name: Verificar assinaturas do registro npm
+        run: npm audit signatures
+
       - name: Verificar projeto
         run: npm run check
 

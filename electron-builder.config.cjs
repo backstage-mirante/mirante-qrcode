@@ -69,7 +69,7 @@ module.exports = {
   publish: {
     provider: "github",
     owner: "backstage-mirante",
-    repo: "scripts-gerar-qrcode",
+    repo: "mirante-qrcode",
     releaseType: "release",
   },
 }

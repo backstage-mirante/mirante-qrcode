@@ -15,7 +15,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build",
-    "package:win": "npm run assets && npm run build && electron-builder --config electron-builder.config.cjs --win nsis --publish never"
+    "package:win": "npm run assets && npm run build && electron-builder --config electron-builder.config.cjs --win nsis --publish never",
+    "package:store": "npm run assets && npm run build && electron-builder --config electron-builder.config.cjs --win --dir --publish never && node scripts/package-msix.mjs"
   },
   "devDependencies": {
     "@base-ui/react": "^1.7.0",
@@ -35,6 +36,7 @@
     "electron-builder": "^26.15.3",
     "electron-updater": "^6.8.9",
     "electron-vite": "^5.0.0",
+    "electron-windows-msix": "^2.0.4",
     "jszip": "^3.10.1",
     "oxlint": "1.78.0",
     "png-to-ico": "^3.0.2",

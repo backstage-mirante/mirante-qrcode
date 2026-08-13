@@ -12,6 +12,15 @@ export function configureUpdater(getWindow: () => BrowserWindow | null): void {
     getWindow()?.webContents.send("updates:state", state)
   }
 
+  if (process.windowsStore) {
+    ipcMain.handle("updates:check", () => {
+      return { status: "not-available" } satisfies UpdateState
+    })
+    ipcMain.handle("updates:download", () => undefined)
+    ipcMain.handle("updates:install", () => undefined)
+    return
+  }
+
   autoUpdater.autoDownload = false
   autoUpdater.autoInstallOnAppQuit = true
   autoUpdater.allowPrerelease = false

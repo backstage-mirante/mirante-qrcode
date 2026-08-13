@@ -348,7 +348,7 @@ export default function App() {
           </span>
           <a
             className="flex items-center gap-1.5 transition hover:text-zinc-300"
-            href="https://github.com/backstage-mirante/scripts-gerar-qrcode"
+            href="https://github.com/backstage-mirante/mirante-qrcode"
             rel="noreferrer"
             target="_blank"
           >

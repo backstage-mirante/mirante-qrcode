@@ -5,6 +5,7 @@
 - `npm run dev`: run the Electron app in development mode.
 - `npm run check`: lint, typecheck, test and production-build.
 - `npm run package:win`: build the NSIS Windows installer.
+- `npm run package:store`: build an unsigned MSIX for Microsoft Store ingestion.
 
 ## Architecture boundaries
 
@@ -19,4 +20,5 @@
 - User-facing text is Brazilian Portuguese.
 - Processing must remain local; never upload input files.
 - Preserve TXT and spreadsheet compatibility.
-- A release is incomplete without the installer, blockmap and `latest.yml`.
+- A GitHub release is incomplete without the installer, blockmap and `latest.yml`.
+- Store builds must remain MSIX packages and let Microsoft Store manage updates.

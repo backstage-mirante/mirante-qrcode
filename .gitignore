@@ -1,12 +1,14 @@
 node_modules/
 out/
 release/
+release-msix/
 coverage/
 .vite/
 *.log
 
 build/icon.ico
 build/icon.png
+build/msix-assets/
 
 .env
 .env.*

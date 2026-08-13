@@ -69,6 +69,21 @@ A versão precisa ser maior que a atual. O instalador, seu blockmap e `latest.ym
 
 A primeira versão `1.0.0` é publicada automaticamente quando o projeto é inicializado. Pushes posteriores não repetem uma versão que já possua tag.
 
+## Publicar pela Microsoft Store
+
+A Microsoft Store é o canal recomendado para computadores com Smart App Control. A Microsoft valida e assina o pacote aprovado, e o Windows instala as atualizações pela própria Store. Não distribua diretamente o MSIX sem assinatura gerado pelo workflow: ele existe apenas para envio ao Partner Center.
+
+1. Crie a conta de desenvolvedor da organização no [Partner Center](https://partner.microsoft.com/dashboard) e reserve o nome **Mirante QR**.
+2. Em **Product identity**, copie exatamente os valores **Package/Identity/Name**, **Publisher** e **Publisher display name**.
+3. Em **Settings → Secrets and variables → Actions → Variables** deste repositório, crie:
+   - `STORE_PACKAGE_IDENTITY`
+   - `STORE_PUBLISHER`
+   - `STORE_PUBLISHER_DISPLAY_NAME`
+4. Abra **Actions → Preparar pacote para Microsoft Store → Run workflow**.
+5. Baixe o artefato `microsoft-store-msix-*` e envie o arquivo `.msix` na submissão do aplicativo no Partner Center.
+
+O pacote da Store não usa `electron-updater`, porque misturar o atualizador do GitHub com o gerenciamento da Store pode quebrar a instalação. A versão `.exe` continua usando as Releases do GitHub normalmente.
+
 ## Arquitetura
 
 - Electron: janela, sistema de arquivos, integração com Windows e atualizações.
@@ -79,6 +94,7 @@ A primeira versão `1.0.0` é publicada automaticamente quando o projeto é inic
 - `jszip`: criação do pacote ZIP.
 - `electron-builder` + NSIS: instalador `.exe`.
 - `electron-updater`: atualizações via GitHub Releases.
+- `electron-windows-msix`: pacote de ingestão da Microsoft Store.
 
 O renderer não tem acesso direto ao Node.js. As operações privilegiadas passam por uma API mínima no preload, com `sandbox`, `contextIsolation` e `nodeIntegration: false`.
 
