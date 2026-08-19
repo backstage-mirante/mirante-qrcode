@@ -45,6 +45,18 @@ describe("parseTextEntries", () => {
     expect(result.entries).toHaveLength(0)
     expect(result.warnings).toHaveLength(2)
   })
+
+  it("ignora uma URL maior que o limite do QR code", () => {
+    const result = parseTextEntries(
+      `example.com\nhttps://example.com/${"a".repeat(3000)}`,
+      "links.txt",
+    )
+
+    expect(result.entries).toHaveLength(1)
+    expect(result.warnings[0]?.message).toBe(
+      "Linha 2 ignorada: URL muito longa (máximo 2048 caracteres).",
+    )
+  })
 })
 
 describe("parseWorksheetEntries", () => {

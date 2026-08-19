@@ -19,6 +19,9 @@ export interface EntryParseResult {
 
 type SpreadsheetCell = SheetData[number][number] | Date
 
+/** QR version 40 at error level M holds about 2331 bytes, so longer lines cannot be encoded. */
+const MAX_URL_LENGTH = 2048
+
 const HEADER_SCAN_LIMIT = 10
 
 function cellString(value: SpreadsheetCell): string {
@@ -86,6 +89,14 @@ export function parseTextEntries(
   for (const [index, rawLine] of content.split(/\r?\n/).entries()) {
     const line = rawLine.trim()
     if (!line || line.startsWith("#")) continue
+
+    if (line.length > MAX_URL_LENGTH) {
+      warnings.push({
+        sourceFile,
+        message: `Linha ${index + 1} ignorada: URL muito longa (máximo ${MAX_URL_LENGTH} caracteres).`,
+      })
+      continue
+    }
 
     const url = safeUrl(line)
     if (!url) {
