@@ -81,6 +81,7 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
 
       return processQrFiles({
         paths: request.paths,
+        urls: request.urls ?? [],
         outputRoot,
         onProgress: (progress) =>
           getWindow()?.webContents.send("qrcode:progress", progress),

@@ -21,6 +21,7 @@ import { Badge } from "@renderer/components/ui/badge"
 import { Button } from "@renderer/components/ui/button"
 import { Progress } from "@renderer/components/ui/progress"
 import { UpdateBanner } from "@renderer/components/update-banner"
+import { UrlComposer } from "@renderer/components/url-composer"
 import { formatBytes } from "@renderer/lib/utils"
 import type {
   AppInfo,
@@ -30,6 +31,7 @@ import type {
   UpdateState,
   WorksheetColumnMapping,
 } from "@shared/contracts"
+import { parseManualUrlEntries, splitUrlLines } from "@shared/qr-core"
 
 function mergeFiles(current: InputFile[], incoming: InputFile[]): InputFile[] {
   const byPath = new Map(current.map((file) => [file.path.toLowerCase(), file]))
@@ -40,6 +42,7 @@ function mergeFiles(current: InputFile[], incoming: InputFile[]): InputFile[] {
 export default function App() {
   const [appInfo, setAppInfo] = useState<AppInfo>()
   const [files, setFiles] = useState<InputFile[]>([])
+  const [urlText, setUrlText] = useState("")
   const [outputDirectory, setOutputDirectory] = useState("")
   const [summary, setSummary] = useState<GenerationSummary>()
   const [progress, setProgress] = useState<GenerationProgress>()
@@ -66,6 +69,8 @@ export default function App() {
     () => files.reduce((total, file) => total + file.size, 0),
     [files],
   )
+  const urlLines = useMemo(() => splitUrlLines(urlText), [urlText])
+  const urlParse = useMemo(() => parseManualUrlEntries(urlLines), [urlLines])
   const progressPercent = progress
     ? (progress.completed / Math.max(progress.total, 1)) * 100
     : 0
@@ -79,6 +84,10 @@ export default function App() {
           sheet.mapping.nameColumn === sheet.mapping.phoneColumn),
     ),
   )
+  const canGenerate =
+    (files.length > 0 || urlParse.entries.length > 0) &&
+    Boolean(outputDirectory) &&
+    !hasPendingMappings
 
   function updateWorksheetMapping(
     filePath: string,
@@ -142,7 +151,7 @@ export default function App() {
   }
 
   async function generate(): Promise<void> {
-    if (files.length === 0) return
+    if (files.length === 0 && urlParse.entries.length === 0) return
     if (hasPendingMappings) {
       setError("Confirme as colunas pendentes antes de gerar os QR codes.")
       return
@@ -155,6 +164,7 @@ export default function App() {
       setSummary(
         await window.qrApp.generate({
           paths: files.map((file) => file.path),
+          urls: urlLines,
           outputRoot: outputDirectory,
           spreadsheetMappings: files.flatMap((file) =>
             (file.spreadsheet?.sheets ?? []).map((sheet) => ({
@@ -229,15 +239,22 @@ export default function App() {
               QR codes prontos para compartilhar em poucos cliques.
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
-              Importe contatos de uma planilha ou uma lista de links. O
-              aplicativo valida, organiza e entrega as imagens junto com um
-              arquivo ZIP.
+              Importe contatos de uma planilha, uma lista de links ou digite as
+              URLs. O aplicativo valida, organiza e entrega as imagens junto com
+              um arquivo ZIP.
             </p>
           </div>
           <div className="flex gap-5 text-right">
             <div>
               <p className="text-xl font-semibold text-white">{files.length}</p>
               <p className="text-xs text-zinc-500">arquivos</p>
+            </div>
+            <div className="h-9 w-px bg-white/[.08]" />
+            <div>
+              <p className="text-xl font-semibold text-white">
+                {urlParse.entries.length}
+              </p>
+              <p className="text-xs text-zinc-500">links</p>
             </div>
             <div className="h-9 w-px bg-white/[.08]" />
             <div>
@@ -255,6 +272,16 @@ export default function App() {
               disabled={generating}
               onBrowse={() => void browse()}
               onDropFiles={(dropped) => void addDroppedFiles(dropped)}
+            />
+
+            <UrlComposer
+              canGenerate={canGenerate}
+              disabled={generating}
+              entries={urlParse.entries}
+              invalidCount={urlParse.warnings.length}
+              value={urlText}
+              onChange={setUrlText}
+              onGenerate={() => void generate()}
             />
 
             {appInfo?.platform === "web" && (
@@ -390,13 +417,11 @@ export default function App() {
             ) : (
               <Button
                 className="w-full"
-                disabled={
-                  files.length === 0 || !outputDirectory || hasPendingMappings
-                }
+                disabled={!canGenerate}
                 size="lg"
                 onClick={() => void generate()}
               >
-                <IconQrcode /> Gerar QR codes <IconArrowRight />
+                <IconQrcode /> GERAR <IconArrowRight />
               </Button>
             )}
 

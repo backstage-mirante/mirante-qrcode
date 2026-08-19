@@ -13,11 +13,13 @@ import type {
   GenerationWarning,
 } from "../shared/contracts"
 import {
+  parseManualUrlEntries,
   parseTextEntries,
   parseWorksheetEntries,
   sanitizeFilename,
   timestamp,
   uniqueFilename,
+  validateManualUrls,
 } from "../shared/qr-core"
 import type { QrEntry } from "../shared/qr-core"
 
@@ -25,6 +27,7 @@ export { parseTextEntries, parseWorksheetEntries, sanitizeFilename }
 
 interface ProcessOptions {
   paths: string[]
+  urls?: string[]
   outputRoot: string
   onProgress?: (progress: GenerationProgress) => void
   now?: Date
@@ -33,7 +36,6 @@ interface ProcessOptions {
 const SUPPORTED_EXTENSIONS = new Set([".txt", ".xlsx"])
 
 export function validateInputPaths(paths: string[]): string[] {
-  if (paths.length === 0) throw new Error("Selecione ao menos um arquivo.")
   if (paths.length > 100)
     throw new Error("Selecione no máximo 100 arquivos por vez.")
 
@@ -48,11 +50,17 @@ export function validateInputPaths(paths: string[]): string[] {
 
 export async function processQrFiles({
   paths,
+  urls,
   outputRoot,
   onProgress,
   now = new Date(),
 }: ProcessOptions): Promise<GenerationSummary> {
+  const manualUrls = validateManualUrls(urls ?? [])
   const safePaths = validateInputPaths(paths)
+  if (manualUrls.length === 0 && safePaths.length === 0) {
+    throw new Error("Selecione ao menos um arquivo ou informe uma URL.")
+  }
+
   const outputDirectory = path.join(
     path.resolve(outputRoot),
     `QR-Codes_${timestamp(now)}`,
@@ -61,6 +69,12 @@ export async function processQrFiles({
 
   const warnings: GenerationWarning[] = []
   const entries: QrEntry[] = []
+
+  if (manualUrls.length > 0) {
+    const parsed = parseManualUrlEntries(manualUrls)
+    entries.push(...parsed.entries)
+    warnings.push(...parsed.warnings)
+  }
 
   for (const filePath of safePaths) {
     const sourceFile = path.basename(filePath)

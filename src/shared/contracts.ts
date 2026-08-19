@@ -50,6 +50,8 @@ export interface SpreadsheetMappingRequest extends WorksheetColumnMapping {
 
 export interface GenerateRequest {
   paths: string[]
+  /** URLs digitadas pelo usuário, uma por item. */
+  urls?: string[]
   outputRoot?: string
   spreadsheetMappings?: SpreadsheetMappingRequest[]
 }

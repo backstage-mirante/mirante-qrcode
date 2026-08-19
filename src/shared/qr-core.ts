@@ -19,10 +19,13 @@ export interface EntryParseResult {
 
 type SpreadsheetCell = SheetData[number][number] | Date
 
+const HEADER_SCAN_LIMIT = 10
+
+export const MANUAL_URL_SOURCE = "URLs digitadas"
+export const MAX_MANUAL_URLS = 500
+
 /** QR version 40 at error level M holds about 2331 bytes, so longer lines cannot be encoded. */
 const MAX_URL_LENGTH = 2048
-
-const HEADER_SCAN_LIMIT = 10
 
 function cellString(value: SpreadsheetCell): string {
   if (value === null) return ""
@@ -115,6 +118,40 @@ export function parseTextEntries(
   }
 
   return { entries, warnings }
+}
+
+/**
+ * Split typed text into candidate URL lines, one per row of the original text.
+ * Blank rows and `#` comments become empty strings so every remaining line keeps
+ * its row number, which is what the generation warnings report back to the user.
+ */
+export function splitUrlLines(text: string): string[] {
+  return text.split(/\r?\n/).map((rawLine) => {
+    const line = rawLine.trim()
+    return line.startsWith("#") ? "" : line
+  })
+}
+
+/** Typed URLs reuse the TXT parser so filenames stay identical to a .txt with the same lines. */
+export function parseManualUrlEntries(lines: string[]): EntryParseResult {
+  return parseTextEntries(lines.join("\n"), MANUAL_URL_SOURCE)
+}
+
+/**
+ * Guards untrusted renderer input: checks array shape and the count cap.
+ * Returns the rows with their positions intact, or an empty list when the user
+ * typed nothing usable.
+ */
+export function validateManualUrls(urls: string[]): string[] {
+  if (!Array.isArray(urls)) throw new Error("Lista de URLs inválida.")
+
+  const lines = splitUrlLines(urls.join("\n"))
+  const candidates = lines.filter((line) => line.length > 0)
+  if (candidates.length > MAX_MANUAL_URLS) {
+    throw new Error(`Informe no máximo ${MAX_MANUAL_URLS} URLs por vez.`)
+  }
+
+  return candidates.length > 0 ? lines : []
 }
 
 function findColumn(

@@ -153,6 +153,7 @@ export const webQrApp: QrAppApi = {
     })
     const result = await processQrFilesInBrowser({
       files,
+      urls: request.urls,
       spreadsheetMappings: request.spreadsheetMappings,
       onProgress: emitProgress,
     })

@@ -10,7 +10,8 @@ Também há uma versão PWA instalável pelo navegador. Ela mantém o processame
 2. Baixe `Mirante-QR-Setup-x.y.z.exe` da versão mais recente.
 3. Execute o instalador e abra **Mirante QR** pelo menu Iniciar.
 4. Arraste arquivos `.xlsx` ou `.txt` para a janela.
-5. Clique em **Gerar QR codes**.
+5. Ou digite as URLs no campo **Digitar URLs**, uma por linha.
+6. Clique em **GERAR**.
 
 O aplicativo cria uma pasta com os arquivos PNG e um `QR-Codes.zip`. Quando houver uma versão nova, um aviso aparecerá dentro do aplicativo.
 
@@ -23,7 +24,8 @@ O instalador já inclui tudo que a aplicação precisa. O usuário não precisa 
 1. Abra a URL publicada pela Vercel no Microsoft Edge ou Google Chrome.
 2. Clique em **Instalar aplicativo**. Se o navegador ainda não exibir a opção, use o menu e escolha **Instalar Mirante QR**.
 3. Adicione arquivos `.xlsx` ou `.txt`.
-4. Clique em **Gerar QR codes** para baixar `QR-Codes_data_hora.zip`.
+4. Ou digite as URLs no campo **Digitar URLs**, uma por linha.
+5. Clique em **GERAR** para baixar `QR-Codes_data_hora.zip`.
 
 A PWA continua disponível offline depois do primeiro carregamento completo. Arquivos importados e QR codes permanecem no dispositivo; não existe upload para a Vercel.
 
@@ -48,6 +50,16 @@ https://example.com/evento
 backstagemirante.com/visita
 # comentário
 ```
+
+### URLs digitadas
+
+Digite uma URL por linha no campo **Digitar URLs** e clique em **GERAR**.
+
+As regras são as mesmas do arquivo TXT: linhas vazias e linhas iniciadas por `#` são ignoradas, e o limite é de 500 URLs por lote.
+
+O nome de cada arquivo PNG vem da URL normalizada; por exemplo, `https://www.example.com/evento` gera `example.com-evento.png`.
+
+Os avisos indicam a linha de cada URL inválida ou maior que 2048 caracteres, contada a partir da primeira linha digitada.
 
 ## Desenvolvimento
 

@@ -7,7 +7,9 @@ import { describe, expect, it } from "vitest"
 
 import {
   inspectWorksheetColumns,
+  parseManualUrlEntries,
   parseWorksheetEntries,
+  validateManualUrls,
 } from "../shared/qr-core"
 import {
   parseTextEntries,
@@ -121,6 +123,77 @@ describe("validateInputPaths", () => {
       "Formato não suportado",
     )
   })
+
+  it("aceita uma lista vazia de arquivos", () => {
+    expect(validateInputPaths([])).toEqual([])
+  })
+})
+
+describe("validateManualUrls", () => {
+  it("normaliza as linhas e mantém a posição de cada URL", () => {
+    expect(
+      validateManualUrls([
+        "  example.com  ",
+        "",
+        "   ",
+        "# comentário",
+        "mirante.com.br",
+      ]),
+    ).toEqual(["example.com", "", "", "", "mirante.com.br"])
+  })
+
+  it("descarta uma lista sem nenhuma URL", () => {
+    expect(validateManualUrls(["", "   ", "# só comentário"])).toEqual([])
+  })
+
+  it("rejeita mais de 500 URLs", () => {
+    const urls = Array.from({ length: 501 }, () => "example.com")
+    expect(() => validateManualUrls(urls)).toThrow(
+      "Informe no máximo 500 URLs por vez.",
+    )
+  })
+
+  it("não conta linhas vazias no limite de URLs", () => {
+    const urls = Array.from({ length: 501 }, (_, index) =>
+      index % 2 === 0 ? "example.com" : "",
+    )
+    expect(validateManualUrls(urls)).toHaveLength(501)
+  })
+})
+
+describe("parseManualUrlEntries", () => {
+  it("cria entradas com a origem digitada e informa linhas inválidas", () => {
+    const result = parseManualUrlEntries(["example.com/evento", "não é url"])
+    const fromText = parseTextEntries("example.com/evento", "links.txt")
+
+    expect(result.entries).toHaveLength(1)
+    expect(result.entries[0]?.sourceFile).toBe("URLs digitadas")
+    expect(result.entries[0]?.filename).toBe(fromText.entries[0]?.filename)
+    expect(result.warnings).toHaveLength(1)
+  })
+
+  it("numera o aviso pela linha digitada pelo usuário", () => {
+    const result = parseManualUrlEntries(
+      validateManualUrls([
+        "# comentário",
+        "",
+        "example.com/evento",
+        "não é url",
+      ]),
+    )
+
+    expect(result.entries).toHaveLength(1)
+    expect(result.warnings[0]?.message).toBe("Linha 4 ignorada: URL inválida.")
+  })
+
+  it("ignora URLs muito longas", () => {
+    const result = parseManualUrlEntries([
+      `https://example.com/${"a".repeat(3000)}`,
+    ])
+
+    expect(result.entries).toHaveLength(0)
+    expect(result.warnings[0]?.message).toContain("URL muito longa")
+  })
 })
 
 describe("processQrFiles", () => {
@@ -143,5 +216,33 @@ describe("processQrFiles", () => {
     expect(new Set(Object.keys(zip.files))).toEqual(
       new Set(["example.com-2.png", "example.com.png"]),
     )
+  })
+
+  it("gera QR codes a partir de URLs digitadas", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "mirante-qr-test-"))
+
+    const result = await processQrFiles({
+      paths: [],
+      urls: ["example.com/evento", "https://mirante.com.br/visita"],
+      outputRoot: root,
+      now: new Date(2026, 7, 13, 12, 30, 0),
+    })
+
+    expect(result.items.map((item) => item.filename)).toEqual([
+      "example.com-evento.png",
+      "mirante.com.br-visita.png",
+    ])
+    const zip = await JSZip.loadAsync(await readFile(result.zipPath))
+    expect(new Set(Object.keys(zip.files))).toEqual(
+      new Set(["example.com-evento.png", "mirante.com.br-visita.png"]),
+    )
+  })
+
+  it("exige um arquivo ou uma URL digitada", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "mirante-qr-test-"))
+
+    await expect(
+      processQrFiles({ paths: [], urls: [], outputRoot: root }),
+    ).rejects.toThrow("Selecione ao menos um arquivo ou informe uma URL.")
   })
 })

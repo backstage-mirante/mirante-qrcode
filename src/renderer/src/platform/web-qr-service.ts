@@ -10,15 +10,18 @@ import type {
   SpreadsheetMappingRequest,
 } from "@shared/contracts"
 import {
+  parseManualUrlEntries,
   parseTextEntries,
   parseWorksheetEntries,
   timestamp,
   uniqueFilename,
+  validateManualUrls,
 } from "@shared/qr-core"
 import type { QrEntry } from "@shared/qr-core"
 
 interface ProcessBrowserOptions {
   files: BrowserInputFile[]
+  urls?: string[]
   spreadsheetMappings?: SpreadsheetMappingRequest[]
   onProgress?: (progress: GenerationProgress) => void
   now?: Date
@@ -47,11 +50,14 @@ function pngBytes(dataUrl: string): Uint8Array {
 
 export async function processQrFilesInBrowser({
   files,
+  urls,
   spreadsheetMappings = [],
   onProgress,
   now = new Date(),
 }: ProcessBrowserOptions): Promise<BrowserGenerationResult> {
-  if (files.length === 0) throw new Error("Selecione ao menos um arquivo.")
+  const manualUrls = validateManualUrls(urls ?? [])
+  if (files.length === 0 && manualUrls.length === 0)
+    throw new Error("Selecione ao menos um arquivo ou informe uma URL.")
   if (files.length > 100)
     throw new Error("Selecione no máximo 100 arquivos por vez.")
 
@@ -63,6 +69,12 @@ export async function processQrFilesInBrowser({
       mapping,
     ]),
   )
+
+  if (manualUrls.length > 0) {
+    const parsed = parseManualUrlEntries(manualUrls)
+    entries.push(...parsed.entries)
+    warnings.push(...parsed.warnings)
+  }
 
   for (const input of files) {
     const { file, path } = input
