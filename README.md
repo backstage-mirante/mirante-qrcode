@@ -98,8 +98,10 @@ bun run check
 
 1. Importe `backstage-mirante/mirante-qrcode` como um projeto na Vercel.
 2. Mantenha o diretório raiz do repositório.
-3. A Vercel lerá `vercel.json`, executará `bun run build:web` e publicará `dist-web`.
+3. A Vercel lerá `vercel.json`, instalará com `bunx bun@1.4.0 install --frozen-lockfile`, executará `bunx bun@1.4.0 run build:web` e publicará `dist-web`.
 4. Vincule o domínio desejado quando o primeiro deploy estiver validado.
+
+A imagem de build da Vercel ainda traz o Bun 1.3, que não lê o `bun.lock` na versão 2 gerada pelo Bun 1.4. Por isso os comandos fixam a versão com `bunx bun@1.4.0`. Ao atualizar o Bun do projeto, atualize também estas duas linhas do `vercel.json`.
 
 Cada push na branch de produção gera uma versão nova. O Service Worker atualiza os arquivos do aplicativo automaticamente; os dados de entrada não passam pelos servidores da Vercel.
 
