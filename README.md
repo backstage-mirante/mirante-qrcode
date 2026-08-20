@@ -101,7 +101,7 @@ O `bun.lock` fica na versão 2 do formato (`"lockfileVersion": 2`), o padrão do
 Para atualizar dependências, use `bun install`, `bun add` ou `bun update`. Duas ferramentas externas ainda leem somente até a versão 1 do formato:
 
 - A imagem de build da Vercel traz o Bun 1.3.14, por isso o `vercel.json` fixa `bunx bun@1.4.0` na instalação e no build.
-- O Dependabot instala o Bun 1.3.14 e limita o formato à versão 1, portanto o job semanal do ecossistema `bun` falha. Não há solução no repositório: a correção depende do `dependabot-core` atualizar `ARG BUN_VERSION` e `MAX_SUPPORTED_LOCKFILE_VERSION` (contexto no PR dependabot/dependabot-core#15896). Até isso acontecer, atualize as dependências com `bun update` e remova a fixação da Vercel quando a imagem trouxer o Bun 1.4.
+- O Dependabot instala o Bun 1.3.14 e recusa o formato acima da versão 1, portanto qualquer job do ecossistema `bun` falharia sem abrir pull request. Por isso a entrada está pausada no `.github/dependabot.yml`, com a condição de reativação escrita no próprio arquivo. Enquanto isso, atualize as dependências com `bun update`; o passo `bun audit --audit-level=high` do CI continua apontando vulnerabilidades conhecidas, e as atualizações do ecossistema `github-actions` seguem ativas. O suporte depende do `dependabot-core` atualizar `ARG BUN_VERSION` e `MAX_SUPPORTED_LOCKFILE_VERSION` (contexto no PR dependabot/dependabot-core#15896).
 
 ## Publicar a PWA na Vercel
 
