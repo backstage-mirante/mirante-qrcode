@@ -25,20 +25,22 @@ jobs:
         with:
           persist-credentials: false
 
+      # electron-vite executa sobre Node.js durante o build do desktop.
       - name: Configurar Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
-          cache: npm
+
+      - name: Configurar Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
 
       - name: Instalar dependências reproduzíveis
-        run: npm ci --ignore-scripts
+        run: bun install --frozen-lockfile
 
+      # O Bun não oferece verificação de assinaturas do registro. A auditoria de
+      # vulnerabilidades abaixo substitui a etapa `npm audit signatures`.
       - name: Auditar toda a árvore de dependências
-        run: npm audit --audit-level=high
-
-      - name: Verificar assinaturas do registro npm
-        run: npm audit signatures
+        run: bun audit --audit-level=high
 
       - name: Verificar projeto
-        run: npm run check
+        run: bun run check

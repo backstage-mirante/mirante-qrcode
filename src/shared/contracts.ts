@@ -48,10 +48,19 @@ export interface SpreadsheetMappingRequest extends WorksheetColumnMapping {
   sheetName: string
 }
 
+export interface ManualContact {
+  /** Nome informado pelo usuário, sem normalização. */
+  name: string
+  /** Telefone informado pelo usuário, com ou sem formatação. */
+  phone: string
+}
+
 export interface GenerateRequest {
   paths: string[]
   /** URLs digitadas pelo usuário, uma por item. */
   urls?: string[]
+  /** Contatos digitados pelo usuário, um por item. */
+  contacts?: ManualContact[]
   outputRoot?: string
   spreadsheetMappings?: SpreadsheetMappingRequest[]
 }
@@ -107,6 +116,7 @@ export interface QrAppApi {
   generate: (request: GenerateRequest) => Promise<GenerationSummary>
   openOutputDirectory: (directory: string) => Promise<void>
   revealFile: (filePath: string) => Promise<void>
+  readClipboardText: () => Promise<string>
   checkForUpdates: () => Promise<UpdateState>
   downloadUpdate: () => Promise<void>
   installUpdate: () => Promise<void>

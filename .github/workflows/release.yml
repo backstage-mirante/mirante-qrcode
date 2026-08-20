@@ -33,6 +33,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Configurar Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+
       - name: Resolver versão solicitada
         id: release
         env:
@@ -40,9 +43,9 @@ jobs:
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             VERSION="${REQUESTED_VERSION}"
-            node scripts/validate-release-version.mjs "${VERSION}"
+            bun scripts/validate-release-version.mjs "${VERSION}"
           else
-            VERSION="$(node -p "require('./package.json').version")"
+            VERSION="$(bun --print "require('./package.json').version")"
           fi
 
           if git rev-parse --quiet --verify "refs/tags/v${VERSION}" >/dev/null; then
@@ -67,23 +70,25 @@ jobs:
         with:
           persist-credentials: false
 
+      # electron-vite executa sobre Node.js durante os builds do desktop.
       - name: Configurar Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
-          cache: npm
+
+      - name: Configurar Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
 
       - name: Instalar dependências reproduzíveis
-        run: npm ci --ignore-scripts
+        run: bun install --frozen-lockfile
 
+      # O Bun não oferece verificação de assinaturas do registro. A auditoria de
+      # vulnerabilidades abaixo substitui a etapa `npm audit signatures`.
       - name: Auditar toda a árvore de dependências
-        run: npm audit --audit-level=high
-
-      - name: Verificar assinaturas do registro npm
-        run: npm audit signatures
+        run: bun audit --audit-level=high
 
       - name: Verificar projeto
-        run: npm run check
+        run: bun run check
 
   build:
     name: Criar instalador NSIS
@@ -107,20 +112,23 @@ jobs:
         with:
           persist-credentials: false
 
+      # electron-vite e electron-builder executam sobre Node.js durante o empacotamento.
       - name: Configurar Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
-          cache: npm
+
+      - name: Configurar Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
 
       - name: Instalar dependências reproduzíveis
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Aplicar versão ao pacote
         shell: bash
         env:
           RELEASE_VERSION: ${{ needs.metadata.outputs.version }}
-        run: npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
+        run: bun pm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
 
       - name: Validar configuração de assinatura quando exigida
         if: env.REQUIRE_WINDOWS_SIGNING == 'true'
@@ -147,7 +155,7 @@ jobs:
           exit "${missing}"
 
       - name: Gerar instalador e metadados de atualização
-        run: npm run package:win
+        run: bun run package:win
 
       - name: Guardar artefatos da versão
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -177,11 +185,8 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Configurar Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
-          cache: npm
+      - name: Configurar Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
 
       - name: Baixar artefatos validados
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -193,10 +198,10 @@ jobs:
         env:
           RELEASE_VERSION: ${{ needs.metadata.outputs.version }}
         run: |
-          npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
+          bun pm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json
+          git add package.json
           if ! git diff --cached --quiet; then
             git commit -m "chore(release): v${RELEASE_VERSION}"
           fi

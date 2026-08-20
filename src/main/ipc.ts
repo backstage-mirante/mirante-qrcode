@@ -2,7 +2,7 @@ import { stat } from "node:fs/promises"
 import path from "node:path"
 
 import type { BrowserWindow } from "electron"
-import { app, dialog, ipcMain, shell } from "electron"
+import { app, clipboard, dialog, ipcMain, shell } from "electron"
 
 import type { GenerateRequest, InputFile, InputKind } from "../shared/contracts"
 import { processQrFiles, validateInputPaths } from "./qr-service"
@@ -82,6 +82,7 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
       return processQrFiles({
         paths: request.paths,
         urls: request.urls ?? [],
+        contacts: request.contacts,
         outputRoot,
         onProgress: (progress) =>
           getWindow()?.webContents.send("qrcode:progress", progress),
@@ -101,4 +102,6 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
     }
     shell.showItemInFolder(path.resolve(filePath))
   })
+
+  ipcMain.handle("clipboard:read", () => clipboard.readText())
 }

@@ -2,12 +2,13 @@
 
 ## Commands
 
-- `npm run dev`: run the Electron app in development mode.
-- `npm run dev:web`: run the browser/PWA target in development mode.
-- `npm run check`: lint, typecheck, test and build Electron and PWA targets.
-- `npm run build:web`: build the installable PWA into `dist-web`.
-- `npm run package:win`: build the NSIS Windows installer.
-- `npm run package:store`: build an unsigned MSIX for Microsoft Store ingestion.
+- `bun install`: instala as dependências do projeto.
+- `bun run dev`: executa o aplicativo Electron em modo de desenvolvimento.
+- `bun run dev:web`: executa o alvo para navegador/PWA em modo de desenvolvimento.
+- `bun run check`: executa lint, verificação de tipos, testes e builds do Electron e da PWA.
+- `bun run build:web`: gera a PWA instalável em `dist-web`.
+- `bun run package:win`: gera o instalador NSIS para Windows.
+- `bun run package:store`: gera um MSIX sem assinatura para envio à Microsoft Store.
 
 ## Architecture boundaries
 

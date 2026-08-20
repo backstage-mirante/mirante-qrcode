@@ -11,14 +11,17 @@ import type {
   GenerationProgress,
   GenerationSummary,
   GenerationWarning,
+  ManualContact,
 } from "../shared/contracts"
 import {
+  parseManualContactEntries,
   parseManualUrlEntries,
   parseTextEntries,
   parseWorksheetEntries,
   sanitizeFilename,
   timestamp,
   uniqueFilename,
+  validateManualContacts,
   validateManualUrls,
 } from "../shared/qr-core"
 import type { QrEntry } from "../shared/qr-core"
@@ -28,6 +31,7 @@ export { parseTextEntries, parseWorksheetEntries, sanitizeFilename }
 interface ProcessOptions {
   paths: string[]
   urls?: string[]
+  contacts?: ManualContact[]
   outputRoot: string
   onProgress?: (progress: GenerationProgress) => void
   now?: Date
@@ -51,14 +55,22 @@ export function validateInputPaths(paths: string[]): string[] {
 export async function processQrFiles({
   paths,
   urls,
+  contacts,
   outputRoot,
   onProgress,
   now = new Date(),
 }: ProcessOptions): Promise<GenerationSummary> {
   const manualUrls = validateManualUrls(urls ?? [])
+  const manualContacts = validateManualContacts(contacts ?? [])
   const safePaths = validateInputPaths(paths)
-  if (manualUrls.length === 0 && safePaths.length === 0) {
-    throw new Error("Selecione ao menos um arquivo ou informe uma URL.")
+  if (
+    manualUrls.length === 0 &&
+    manualContacts.length === 0 &&
+    safePaths.length === 0
+  ) {
+    throw new Error(
+      "Selecione ao menos um arquivo, informe uma URL ou digite um contato.",
+    )
   }
 
   const outputDirectory = path.join(
@@ -72,6 +84,12 @@ export async function processQrFiles({
 
   if (manualUrls.length > 0) {
     const parsed = parseManualUrlEntries(manualUrls)
+    entries.push(...parsed.entries)
+    warnings.push(...parsed.warnings)
+  }
+
+  if (manualContacts.length > 0) {
+    const parsed = parseManualContactEntries(manualContacts)
     entries.push(...parsed.entries)
     warnings.push(...parsed.warnings)
   }

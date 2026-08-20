@@ -14,6 +14,7 @@ import {
 import { useEffect, useMemo, useState } from "react"
 
 import { DropZone } from "@renderer/components/drop-zone"
+import { EntryComposer } from "@renderer/components/entry-composer"
 import { PwaInstallButton } from "@renderer/components/pwa-install-button"
 import { ResultsGallery } from "@renderer/components/results-gallery"
 import { SpreadsheetMappingPanel } from "@renderer/components/spreadsheet-mapping-panel"
@@ -21,17 +22,21 @@ import { Badge } from "@renderer/components/ui/badge"
 import { Button } from "@renderer/components/ui/button"
 import { Progress } from "@renderer/components/ui/progress"
 import { UpdateBanner } from "@renderer/components/update-banner"
-import { UrlComposer } from "@renderer/components/url-composer"
 import { formatBytes } from "@renderer/lib/utils"
 import type {
   AppInfo,
   GenerationProgress,
   GenerationSummary,
   InputFile,
+  ManualContact,
   UpdateState,
   WorksheetColumnMapping,
 } from "@shared/contracts"
-import { parseManualUrlEntries, splitUrlLines } from "@shared/qr-core"
+import {
+  parseManualContactEntries,
+  parseManualUrlEntries,
+  splitUrlLines,
+} from "@shared/qr-core"
 
 function mergeFiles(current: InputFile[], incoming: InputFile[]): InputFile[] {
   const byPath = new Map(current.map((file) => [file.path.toLowerCase(), file]))
@@ -43,6 +48,9 @@ export default function App() {
   const [appInfo, setAppInfo] = useState<AppInfo>()
   const [files, setFiles] = useState<InputFile[]>([])
   const [urlText, setUrlText] = useState("")
+  const [contacts, setContacts] = useState<ManualContact[]>([
+    { name: "", phone: "" },
+  ])
   const [outputDirectory, setOutputDirectory] = useState("")
   const [summary, setSummary] = useState<GenerationSummary>()
   const [progress, setProgress] = useState<GenerationProgress>()
@@ -71,6 +79,10 @@ export default function App() {
   )
   const urlLines = useMemo(() => splitUrlLines(urlText), [urlText])
   const urlParse = useMemo(() => parseManualUrlEntries(urlLines), [urlLines])
+  const contactParse = useMemo(
+    () => parseManualContactEntries(contacts),
+    [contacts],
+  )
   const progressPercent = progress
     ? (progress.completed / Math.max(progress.total, 1)) * 100
     : 0
@@ -85,7 +97,9 @@ export default function App() {
     ),
   )
   const canGenerate =
-    (files.length > 0 || urlParse.entries.length > 0) &&
+    (files.length > 0 ||
+      urlParse.entries.length > 0 ||
+      contactParse.entries.length > 0) &&
     Boolean(outputDirectory) &&
     !hasPendingMappings
 
@@ -151,7 +165,13 @@ export default function App() {
   }
 
   async function generate(): Promise<void> {
-    if (files.length === 0 && urlParse.entries.length === 0) return
+    if (
+      files.length === 0 &&
+      urlParse.entries.length === 0 &&
+      contactParse.entries.length === 0
+    ) {
+      return
+    }
     if (hasPendingMappings) {
       setError("Confirme as colunas pendentes antes de gerar os QR codes.")
       return
@@ -165,6 +185,7 @@ export default function App() {
         await window.qrApp.generate({
           paths: files.map((file) => file.path),
           urls: urlLines,
+          contacts,
           outputRoot: outputDirectory,
           spreadsheetMappings: files.flatMap((file) =>
             (file.spreadsheet?.sheets ?? []).map((sheet) => ({
@@ -239,9 +260,9 @@ export default function App() {
               QR codes prontos para compartilhar em poucos cliques.
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
-              Importe contatos de uma planilha, uma lista de links ou digite as
-              URLs. O aplicativo valida, organiza e entrega as imagens junto com
-              um arquivo ZIP.
+              Importe contatos de uma planilha, digite as URLs ou cadastre os
+              contatos manualmente. O aplicativo valida, organiza e entrega as
+              imagens junto com um arquivo ZIP.
             </p>
           </div>
           <div className="flex gap-5 text-right">
@@ -255,6 +276,13 @@ export default function App() {
                 {urlParse.entries.length}
               </p>
               <p className="text-xs text-zinc-500">links</p>
+            </div>
+            <div className="h-9 w-px bg-white/[.08]" />
+            <div>
+              <p className="text-xl font-semibold text-white">
+                {contactParse.entries.length}
+              </p>
+              <p className="text-xs text-zinc-500">contatos</p>
             </div>
             <div className="h-9 w-px bg-white/[.08]" />
             <div>
@@ -274,14 +302,18 @@ export default function App() {
               onDropFiles={(dropped) => void addDroppedFiles(dropped)}
             />
 
-            <UrlComposer
+            <EntryComposer
               canGenerate={canGenerate}
+              contactEntries={contactParse.entries}
+              contactInvalidCount={contactParse.warnings.length}
+              contacts={contacts}
               disabled={generating}
-              entries={urlParse.entries}
-              invalidCount={urlParse.warnings.length}
-              value={urlText}
-              onChange={setUrlText}
+              urlEntries={urlParse.entries}
+              urlInvalidCount={urlParse.warnings.length}
+              urlText={urlText}
+              onContactsChange={setContacts}
               onGenerate={() => void generate()}
+              onUrlChange={setUrlText}
             />
 
             {appInfo?.platform === "web" && (

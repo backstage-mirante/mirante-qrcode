@@ -103,6 +103,15 @@ function downloadDataUrl(dataUrl: string, filename: string): void {
   anchor.click()
 }
 
+async function readClipboardText(): Promise<string> {
+  try {
+    if (!navigator.clipboard?.readText) throw new Error()
+    return await navigator.clipboard.readText()
+  } catch {
+    throw new Error("Não foi possível ler a área de transferência.")
+  }
+}
+
 async function selectFiles(): Promise<InputFile[]> {
   return new Promise((resolve) => {
     const input = document.createElement("input")
@@ -154,6 +163,7 @@ export const webQrApp: QrAppApi = {
     const result = await processQrFilesInBrowser({
       files,
       urls: request.urls,
+      contacts: request.contacts,
       spreadsheetMappings: request.spreadsheetMappings,
       onProgress: emitProgress,
     })
@@ -172,6 +182,7 @@ export const webQrApp: QrAppApi = {
   revealFile: async (filePath) => {
     downloadDataUrl(filePath, "qrcode.png")
   },
+  readClipboardText,
   checkForUpdates: async () => {
     emitUpdate({ status: "checking" })
     const registration = await navigator.serviceWorker?.getRegistration()

@@ -7,14 +7,17 @@ import type {
   GenerationProgress,
   GenerationSummary,
   GenerationWarning,
+  ManualContact,
   SpreadsheetMappingRequest,
 } from "@shared/contracts"
 import {
+  parseManualContactEntries,
   parseManualUrlEntries,
   parseTextEntries,
   parseWorksheetEntries,
   timestamp,
   uniqueFilename,
+  validateManualContacts,
   validateManualUrls,
 } from "@shared/qr-core"
 import type { QrEntry } from "@shared/qr-core"
@@ -22,6 +25,7 @@ import type { QrEntry } from "@shared/qr-core"
 interface ProcessBrowserOptions {
   files: BrowserInputFile[]
   urls?: string[]
+  contacts?: ManualContact[]
   spreadsheetMappings?: SpreadsheetMappingRequest[]
   onProgress?: (progress: GenerationProgress) => void
   now?: Date
@@ -51,13 +55,21 @@ function pngBytes(dataUrl: string): Uint8Array {
 export async function processQrFilesInBrowser({
   files,
   urls,
+  contacts,
   spreadsheetMappings = [],
   onProgress,
   now = new Date(),
 }: ProcessBrowserOptions): Promise<BrowserGenerationResult> {
   const manualUrls = validateManualUrls(urls ?? [])
-  if (files.length === 0 && manualUrls.length === 0)
-    throw new Error("Selecione ao menos um arquivo ou informe uma URL.")
+  const manualContacts = validateManualContacts(contacts ?? [])
+  if (
+    files.length === 0 &&
+    manualUrls.length === 0 &&
+    manualContacts.length === 0
+  )
+    throw new Error(
+      "Selecione ao menos um arquivo, informe uma URL ou digite um contato.",
+    )
   if (files.length > 100)
     throw new Error("Selecione no máximo 100 arquivos por vez.")
 
@@ -72,6 +84,12 @@ export async function processQrFilesInBrowser({
 
   if (manualUrls.length > 0) {
     const parsed = parseManualUrlEntries(manualUrls)
+    entries.push(...parsed.entries)
+    warnings.push(...parsed.warnings)
+  }
+
+  if (manualContacts.length > 0) {
+    const parsed = parseManualContactEntries(manualContacts)
     entries.push(...parsed.entries)
     warnings.push(...parsed.warnings)
   }
