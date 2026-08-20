@@ -1,5 +1,7 @@
 version: 2
 updates:
+  # O bun do Dependabot lê o bun.lock somente até "lockfileVersion": 1.
+  # Mantenha o lockfile nessa versão; o Bun 1.4 continua lendo e gravando v1.
   - package-ecosystem: bun
     directory: /
     schedule:

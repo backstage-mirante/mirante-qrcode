@@ -94,14 +94,18 @@ Verificação completa:
 bun run check
 ```
 
+### Lockfile
+
+O `bun.lock` fica na versão 1 (`"lockfileVersion": 1`). A imagem de build da Vercel e o bun do Dependabot leem somente até essa versão, e o Bun 1.4 continua lendo e gravando o formato v1 sem convertê-lo.
+
+Para atualizar dependências, use `bun install`, `bun add` ou `bun update`, que preservam a versão do arquivo. Nunca apague o `bun.lock` antes de instalar: o Bun 1.4 criaria um lockfile na versão 2, que quebra o deploy da Vercel e o Dependabot. Se isso acontecer, gere o arquivo de novo com `bunx bun@1.3.14 install --lockfile-only`.
+
 ## Publicar a PWA na Vercel
 
 1. Importe `backstage-mirante/mirante-qrcode` como um projeto na Vercel.
 2. Mantenha o diretório raiz do repositório.
-3. A Vercel lerá `vercel.json`, instalará com `bunx bun@1.4.0 install --frozen-lockfile`, executará `bunx bun@1.4.0 run build:web` e publicará `dist-web`.
+3. A Vercel lerá `vercel.json`, instalará com `bun install --frozen-lockfile`, executará `bun run build:web` e publicará `dist-web`.
 4. Vincule o domínio desejado quando o primeiro deploy estiver validado.
-
-A imagem de build da Vercel ainda traz o Bun 1.3, que não lê o `bun.lock` na versão 2 gerada pelo Bun 1.4. Por isso os comandos fixam a versão com `bunx bun@1.4.0`. Ao atualizar o Bun do projeto, atualize também estas duas linhas do `vercel.json`.
 
 Cada push na branch de produção gera uma versão nova. O Service Worker atualiza os arquivos do aplicativo automaticamente; os dados de entrada não passam pelos servidores da Vercel.
 
