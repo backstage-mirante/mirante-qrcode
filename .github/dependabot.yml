@@ -1,27 +1,40 @@
 version: 2
 updates:
-  # O bun do Dependabot lê o bun.lock somente até "lockfileVersion": 1.
-  # Mantenha o lockfile nessa versão; o Bun 1.4 continua lendo e gravando v1.
-  - package-ecosystem: bun
-    directory: /
-    schedule:
-      interval: weekly
-      day: monday
-      time: "09:00"
-      timezone: America/Sao_Paulo
-    open-pull-requests-limit: 5
-    groups:
-      production-dependencies:
-        dependency-type: production
-      development-dependencies:
-        dependency-type: development
-    ignore:
-      # electron-vite 5 aceita Vite apenas até a major 7. O plugin React 6 exige
-      # Vite 8; remover estes bloqueios assim que electron-vite declarar suporte.
-      - dependency-name: vite
-        update-types: [version-update:semver-major]
-      - dependency-name: "@vitejs/plugin-react"
-        update-types: [version-update:semver-major]
+  # Atualizações de dependências JavaScript estão pausadas.
+  #
+  # O bun.lock está na versão 2 do formato, gravada pelo Bun 1.4. O Dependabot
+  # instala o Bun 1.3.14 (`ARG BUN_VERSION` em bun/Dockerfile) e recusa o
+  # formato acima da versão 1 (`MAX_SUPPORTED_LOCKFILE_VERSION` em
+  # bun/lib/dependabot/bun/bun_package_manager.rb), então o job falharia em
+  # toda execução, sem abrir nenhum pull request.
+  # Contexto: https://github.com/dependabot/dependabot-core/pull/15896
+  #
+  # Para reativar, confirme que as duas constantes do dependabot-core aceitam o
+  # Bun 1.4 e remova os comentários do bloco abaixo. Até então, atualize as
+  # dependências com `bun update`; o passo `bun audit --audit-level=high` do CI
+  # continua apontando vulnerabilidades conhecidas.
+  #
+  # - package-ecosystem: bun
+  #   directory: /
+  #   schedule:
+  #     interval: weekly
+  #     day: monday
+  #     time: "09:00"
+  #     timezone: America/Sao_Paulo
+  #   open-pull-requests-limit: 5
+  #   groups:
+  #     production-dependencies:
+  #       dependency-type: production
+  #     development-dependencies:
+  #       dependency-type: development
+  #   ignore:
+  #     # electron-vite 5 aceita Vite apenas até a major 7. O plugin React 6
+  #     # exige Vite 8; remover estes bloqueios assim que electron-vite
+  #     # declarar suporte.
+  #     - dependency-name: vite
+  #       update-types: [version-update:semver-major]
+  #     - dependency-name: "@vitejs/plugin-react"
+  #       update-types: [version-update:semver-major]
 
   - package-ecosystem: github-actions
     directory: /

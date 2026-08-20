@@ -96,15 +96,18 @@ bun run check
 
 ### Lockfile
 
-O `bun.lock` fica na versão 1 (`"lockfileVersion": 1`). A imagem de build da Vercel e o bun do Dependabot leem somente até essa versão, e o Bun 1.4 continua lendo e gravando o formato v1 sem convertê-lo.
+O `bun.lock` fica na versão 2 do formato (`"lockfileVersion": 2`), o padrão do Bun 1.4. Essa versão acrescenta duas verificações na leitura: um pacote npm resolvido para um tarball fora do registro configurado precisa trazer hash de integridade, e entradas de dependência git são validadas contra travessia de caminho.
 
-Para atualizar dependências, use `bun install`, `bun add` ou `bun update`, que preservam a versão do arquivo. Nunca apague o `bun.lock` antes de instalar: o Bun 1.4 criaria um lockfile na versão 2, que quebra o deploy da Vercel e o Dependabot. Se isso acontecer, gere o arquivo de novo com `bunx bun@1.3.14 install --lockfile-only`.
+Para atualizar dependências, use `bun install`, `bun add` ou `bun update`. Duas ferramentas externas ainda leem somente até a versão 1 do formato:
+
+- A imagem de build da Vercel traz o Bun 1.3.14, por isso o `vercel.json` fixa `bunx bun@1.4.0` na instalação e no build.
+- O Dependabot instala o Bun 1.3.14 e recusa o formato acima da versão 1, portanto qualquer job do ecossistema `bun` falharia sem abrir pull request. Por isso a entrada está pausada no `.github/dependabot.yml`, com a condição de reativação escrita no próprio arquivo. Enquanto isso, atualize as dependências com `bun update`; o passo `bun audit --audit-level=high` do CI continua apontando vulnerabilidades conhecidas, e as atualizações do ecossistema `github-actions` seguem ativas. O suporte depende do `dependabot-core` atualizar `ARG BUN_VERSION` e `MAX_SUPPORTED_LOCKFILE_VERSION` (contexto no PR dependabot/dependabot-core#15896).
 
 ## Publicar a PWA na Vercel
 
 1. Importe `backstage-mirante/mirante-qrcode` como um projeto na Vercel.
 2. Mantenha o diretório raiz do repositório.
-3. A Vercel lerá `vercel.json`, instalará com `bun install --frozen-lockfile`, executará `bun run build:web` e publicará `dist-web`.
+3. A Vercel lerá `vercel.json`, instalará com `bunx bun@1.4.0 install --frozen-lockfile`, executará `bunx bun@1.4.0 run build:web` e publicará `dist-web`.
 4. Vincule o domínio desejado quando o primeiro deploy estiver validado.
 
 Cada push na branch de produção gera uma versão nova. O Service Worker atualiza os arquivos do aplicativo automaticamente; os dados de entrada não passam pelos servidores da Vercel.
