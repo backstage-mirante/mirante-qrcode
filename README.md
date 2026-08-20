@@ -10,8 +10,9 @@ Também há uma versão PWA instalável pelo navegador. Ela mantém o processame
 2. Baixe `Mirante-QR-Setup-x.y.z.exe` da versão mais recente.
 3. Execute o instalador e abra **Mirante QR** pelo menu Iniciar.
 4. Arraste arquivos `.xlsx` ou `.txt` para a janela.
-5. Ou digite as URLs no campo **Digitar URLs**, uma por linha.
-6. Clique em **GERAR**.
+5. Ou abra a aba **URL** e digite as URLs, uma por linha.
+6. Ou abra a aba **Manual** e preencha o nome e o telefone de cada contato.
+7. Clique em **GERAR**.
 
 O aplicativo cria uma pasta com os arquivos PNG e um `QR-Codes.zip`. Quando houver uma versão nova, um aviso aparecerá dentro do aplicativo.
 
@@ -24,8 +25,9 @@ O instalador já inclui tudo que a aplicação precisa. O usuário não precisa 
 1. Abra a URL publicada pela Vercel no Microsoft Edge ou Google Chrome.
 2. Clique em **Instalar aplicativo**. Se o navegador ainda não exibir a opção, use o menu e escolha **Instalar Mirante QR**.
 3. Adicione arquivos `.xlsx` ou `.txt`.
-4. Ou digite as URLs no campo **Digitar URLs**, uma por linha.
-5. Clique em **GERAR** para baixar `QR-Codes_data_hora.zip`.
+4. Ou abra a aba **URL** e digite as URLs, uma por linha.
+5. Ou abra a aba **Manual** e preencha o nome e o telefone de cada contato.
+6. Clique em **GERAR** para baixar `QR-Codes_data_hora.zip`.
 
 A PWA continua disponível offline depois do primeiro carregamento completo. Arquivos importados e QR codes permanecem no dispositivo; não existe upload para a Vercel.
 
@@ -53,7 +55,7 @@ backstagemirante.com/visita
 
 ### URLs digitadas
 
-Digite uma URL por linha no campo **Digitar URLs** e clique em **GERAR**.
+Digite uma URL por linha na aba **URL** e clique em **GERAR**. O botão **Colar URLs** acrescenta o conteúdo da área de transferência como novas linhas.
 
 As regras são as mesmas do arquivo TXT: linhas vazias e linhas iniciadas por `#` são ignoradas, e o limite é de 500 URLs por lote.
 
@@ -61,32 +63,42 @@ O nome de cada arquivo PNG vem da URL normalizada; por exemplo, `https://www.exa
 
 Os avisos indicam a linha de cada URL inválida ou maior que 2048 caracteres, contada a partir da primeira linha digitada.
 
+### Contatos digitados
+
+Abra a aba **Manual** e preencha um bloco por contato, com **Nome** e **Telefone**. Cada campo tem um botão **Colar**, e o botão **Adicionar contato** cria um novo bloco.
+
+O telefone é formatado enquanto você digita, como `(11) 97355-8890`. Quando o número já traz o código do país, o campo mostra `+55 (11) 97355-8890`. O código `55` é incluído automaticamente no link `https://wa.me/5511973558890`.
+
+O nome do arquivo PNG vem do nome normalizado: acentos e caracteres proibidos pelo Windows são removidos e os espaços viram `-`. Por exemplo, `Ana Lima` gera `Ana-Lima.png`.
+
+O limite é de 500 contatos por lote. Blocos totalmente vazios são ignorados sem aviso; blocos sem nome ou com celular incompleto geram um aviso com a posição do contato na lista.
+
 ## Desenvolvimento
 
-Node.js 24 e npm são requisitos somente para desenvolvimento, nunca para quem instala a aplicação.
+Node.js 24 continua obrigatório para as ferramentas do Electron. Bun 1.4 é o gerenciador de pacotes usado no desenvolvimento; nenhum dos dois é necessário para quem instala a aplicação.
 
 ```bash
-npm ci
-npm run dev
+bun install
+bun run dev
 ```
 
 Desenvolvimento da PWA:
 
 ```bash
-npm run dev:web
+bun run dev:web
 ```
 
 Verificação completa:
 
 ```bash
-npm run check
+bun run check
 ```
 
 ## Publicar a PWA na Vercel
 
 1. Importe `backstage-mirante/mirante-qrcode` como um projeto na Vercel.
 2. Mantenha o diretório raiz do repositório.
-3. A Vercel lerá `vercel.json`, executará `npm run build:web` e publicará `dist-web`.
+3. A Vercel lerá `vercel.json`, executará `bun run build:web` e publicará `dist-web`.
 4. Vincule o domínio desejado quando o primeiro deploy estiver validado.
 
 Cada push na branch de produção gera uma versão nova. O Service Worker atualiza os arquivos do aplicativo automaticamente; os dados de entrada não passam pelos servidores da Vercel.
@@ -94,7 +106,7 @@ Cada push na branch de produção gera uma versão nova. O Service Worker atuali
 Empacotamento Windows:
 
 ```bash
-npm run package:win
+bun run package:win
 ```
 
 ## Publicar uma versão

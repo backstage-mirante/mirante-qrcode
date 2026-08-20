@@ -27,20 +27,22 @@ jobs:
         with:
           persist-credentials: false
 
+      # electron-vite e electron-builder executam sobre Node.js durante o empacotamento.
       - name: Configurar Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
-          cache: npm
+
+      - name: Configurar Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
 
       - name: Instalar dependências reproduzíveis
-        run: npm ci
+        run: bun install --frozen-lockfile
 
+      # O Bun não oferece verificação de assinaturas do registro. A auditoria de
+      # vulnerabilidades abaixo substitui a etapa `npm audit signatures`.
       - name: Auditar toda a árvore de dependências
-        run: npm audit --audit-level=high
-
-      - name: Verificar assinaturas do registro npm
-        run: npm audit signatures
+        run: bun audit --audit-level=high
 
       - name: Validar identidade atribuída pelo Partner Center
         shell: bash
@@ -62,10 +64,10 @@ jobs:
           exit "${missing}"
 
       - name: Verificar projeto
-        run: npm run check
+        run: bun run check
 
       - name: Gerar MSIX para ingestão da Store
-        run: npm run package:store
+        run: bun run package:store
 
       - name: Guardar pacote MSIX
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

@@ -27,6 +27,8 @@ const api: QrAppApi = {
     ipcRenderer.invoke("shell:open-output", directory),
   revealFile: (filePath: string): Promise<void> =>
     ipcRenderer.invoke("shell:reveal-file", filePath),
+  readClipboardText: (): Promise<string> =>
+    ipcRenderer.invoke("clipboard:read"),
   checkForUpdates: (): Promise<UpdateState> =>
     ipcRenderer.invoke("updates:check"),
   downloadUpdate: (): Promise<void> => ipcRenderer.invoke("updates:download"),

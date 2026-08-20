@@ -1,6 +1,6 @@
 import type { SheetData } from "read-excel-file/browser"
 
-import type { GenerationWarning } from "./contracts"
+import type { GenerationWarning, ManualContact } from "./contracts"
 import type {
   SpreadsheetHeaderRow,
   WorksheetColumnMapping,
@@ -23,9 +23,12 @@ const HEADER_SCAN_LIMIT = 10
 
 export const MANUAL_URL_SOURCE = "URLs digitadas"
 export const MAX_MANUAL_URLS = 500
+export const MANUAL_CONTACT_SOURCE = "Contatos digitados"
+export const MAX_MANUAL_CONTACTS = 500
 
 /** QR version 40 at error level M holds about 2331 bytes, so longer lines cannot be encoded. */
 const MAX_URL_LENGTH = 2048
+const NON_DIGIT_PATTERN = /\D/g
 
 function cellString(value: SpreadsheetCell): string {
   if (value === null) return ""
@@ -152,6 +155,106 @@ export function validateManualUrls(urls: string[]): string[] {
   }
 
   return candidates.length > 0 ? lines : []
+}
+
+/** Somente dígitos, com o código do país 55. Retorna "" quando não há dígito. */
+export function contactPhoneDigits(raw: string): string {
+  const digits = raw.replace(NON_DIGIT_PATTERN, "")
+  if (!digits) return ""
+  return digits.startsWith("55") ? digits : `55${digits}`
+}
+
+/** Máscara brasileira progressiva para o campo de telefone. */
+export function formatContactPhone(raw: string): string {
+  const digits = raw.replace(NON_DIGIT_PATTERN, "").slice(0, 13)
+  if (!digits) return ""
+
+  const hasCountryCode = digits.length > 11
+  const countryCode = hasCountryCode ? digits.slice(0, 2) : ""
+  const nationalNumber = hasCountryCode ? digits.slice(2) : digits
+  const areaCode = nationalNumber.slice(0, 2)
+  const localNumber = nationalNumber.slice(2)
+  const prefix = hasCountryCode ? `+${countryCode} ` : ""
+
+  if (nationalNumber.length <= 2) return `${prefix}(${areaCode}`
+
+  const splitIndex = localNumber.length <= 8 ? 4 : 5
+  const formattedLocal =
+    localNumber.length <= splitIndex
+      ? localNumber
+      : `${localNumber.slice(0, splitIndex)}-${localNumber.slice(splitIndex)}`
+
+  return `${prefix}(${areaCode}) ${formattedLocal}`
+}
+
+function contactEntry(
+  name: string,
+  rawPhone: string,
+  sourceFile: string,
+  filenameName = name,
+): QrEntry | undefined {
+  const normalizedName = name.trim()
+  const phone = contactPhoneDigits(rawPhone)
+  if (!normalizedName || phone.length < 12 || phone.length > 13) {
+    return undefined
+  }
+
+  return {
+    filename: `${sanitizeFilename(filenameName)}.png`,
+    value: `https://wa.me/${phone}`,
+    sourceFile,
+  }
+}
+
+/** Converte contatos digitados em entradas de QR code, com avisos por posição. */
+export function parseManualContactEntries(
+  contacts: ManualContact[],
+): EntryParseResult {
+  const entries: QrEntry[] = []
+  const warnings: GenerationWarning[] = []
+
+  for (const [index, contact] of contacts.entries()) {
+    const name = contact.name.trim()
+    const rawPhone = contact.phone.trim()
+    if (!name && !rawPhone) continue
+
+    const entry = contactEntry(name, rawPhone, MANUAL_CONTACT_SOURCE)
+    if (entry) {
+      entries.push(entry)
+      continue
+    }
+
+    warnings.push({
+      sourceFile: MANUAL_CONTACT_SOURCE,
+      message: `Contato ${index + 1} ignorado: nome ou celular inválido.`,
+    })
+  }
+
+  return { entries, warnings }
+}
+
+/** Valida a entrada não confiável do renderer e devolve as linhas nas posições originais. */
+export function validateManualContacts(
+  contacts: ManualContact[],
+): ManualContact[] {
+  if (!Array.isArray(contacts)) {
+    throw new Error("Lista de contatos inválida.")
+  }
+
+  const rows = contacts.map((contact) => ({
+    name: String(contact?.name ?? "").slice(0, 200),
+    phone: String(contact?.phone ?? "").slice(0, 40),
+  }))
+  const candidates = rows.filter(
+    (contact) => contact.name.trim() || contact.phone.trim(),
+  )
+  if (candidates.length > MAX_MANUAL_CONTACTS) {
+    throw new Error(
+      `Informe no máximo ${MAX_MANUAL_CONTACTS} contatos por vez.`,
+    )
+  }
+
+  return candidates.length > 0 ? rows : []
 }
 
 function findColumn(
@@ -328,11 +431,13 @@ export function parseWorksheetEntries(
     const rawPhone = cellString(row[columns.phone]).trim()
 
     if (!firstName && !rawPhone) continue
-
-    let phone = rawPhone.replace(/\D/g, "")
-    if (!phone.startsWith("55")) phone = `55${phone}`
-
-    if (!firstName || phone.length < 12 || phone.length > 13) {
+    const entry = contactEntry(
+      firstName,
+      rawPhone,
+      sourceFile,
+      `${firstName} ${lastName}`,
+    )
+    if (!entry) {
       warnings.push({
         sourceFile,
         message: `Aba “${sheetName}”, linha ${index + 1} ignorada: nome ou celular inválido.`,
@@ -340,11 +445,7 @@ export function parseWorksheetEntries(
       continue
     }
 
-    entries.push({
-      filename: `${sanitizeFilename(`${firstName} ${lastName}`)}.png`,
-      value: `https://wa.me/${phone}`,
-      sourceFile,
-    })
+    entries.push(entry)
   }
 
   return { entries, warnings }

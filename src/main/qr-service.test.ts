@@ -238,11 +238,45 @@ describe("processQrFiles", () => {
     )
   })
 
-  it("exige um arquivo ou uma URL digitada", async () => {
+  it("gera contatos válidos e avisa sobre contatos inválidos", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "mirante-qr-test-"))
+
+    const result = await processQrFiles({
+      paths: [],
+      contacts: [
+        { name: "João: Silva", phone: "(11) 97355-8890" },
+        { name: "Contato inválido", phone: "123" },
+      ],
+      outputRoot: root,
+      now: new Date(2026, 7, 13, 12, 30, 0),
+    })
+
+    expect(result.items).toHaveLength(1)
+    expect(result.items[0]).toMatchObject({
+      filename: "Joao-Silva.png",
+      encodedValue: "https://wa.me/5511973558890",
+    })
+    expect(
+      await readFile(path.join(result.outputDirectory, "Joao-Silva.png")),
+    ).not.toHaveLength(0)
+    expect(result.warnings).toEqual([
+      {
+        sourceFile: "Contatos digitados",
+        message: "Contato 2 ignorado: nome ou celular inválido.",
+      },
+    ])
+
+    const zip = await JSZip.loadAsync(await readFile(result.zipPath))
+    expect(Object.keys(zip.files)).toEqual(["Joao-Silva.png"])
+  })
+
+  it("exige um arquivo, uma URL ou um contato digitado", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "mirante-qr-test-"))
 
     await expect(
-      processQrFiles({ paths: [], urls: [], outputRoot: root }),
-    ).rejects.toThrow("Selecione ao menos um arquivo ou informe uma URL.")
+      processQrFiles({ paths: [], urls: [], contacts: [], outputRoot: root }),
+    ).rejects.toThrow(
+      "Selecione ao menos um arquivo, informe uma URL ou digite um contato.",
+    )
   })
 })

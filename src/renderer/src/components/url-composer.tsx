@@ -1,6 +1,7 @@
 import { IconLink, IconSend } from "@tabler/icons-react"
 import type { KeyboardEvent } from "react"
 
+import { PasteButton } from "@renderer/components/paste-button"
 import { Badge } from "@renderer/components/ui/badge"
 import { Button } from "@renderer/components/ui/button"
 import { Textarea } from "@renderer/components/ui/textarea"
@@ -34,8 +35,19 @@ export function UrlComposer({
     onGenerate()
   }
 
+  function appendPastedUrls(text: string): void {
+    const pasted = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line !== "")
+      .join("\n")
+    if (pasted === "") return
+    const current = value.replace(/\s+$/, "")
+    onChange(current === "" ? pasted : `${current}\n${pasted}`)
+  }
+
   return (
-    <section className="mt-4 rounded-2xl border border-white/[.08] bg-white/[.035] p-4">
+    <div>
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-indigo-400/20 bg-indigo-400/10 text-indigo-300">
@@ -43,11 +55,18 @@ export function UrlComposer({
           </div>
           <h2 className="text-sm font-semibold text-white">Digitar URLs</h2>
         </div>
-        {value !== "" && (
-          <Button size="sm" variant="ghost" onClick={() => onChange("")}>
-            Limpar
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <PasteButton
+            disabled={disabled}
+            label="Colar URLs"
+            onPaste={appendPastedUrls}
+          />
+          {value !== "" && (
+            <Button size="sm" variant="ghost" onClick={() => onChange("")}>
+              Limpar
+            </Button>
+          )}
+        </div>
       </div>
 
       <p className="mb-3 text-xs leading-5 text-zinc-500">
@@ -106,6 +125,6 @@ export function UrlComposer({
           <IconSend /> GERAR
         </Button>
       </div>
-    </section>
+    </div>
   )
 }
