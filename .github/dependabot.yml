@@ -1,7 +1,9 @@
 version: 2
 updates:
-  # O bun do Dependabot lê o bun.lock somente até "lockfileVersion": 1.
-  # Mantenha o lockfile nessa versão; o Bun 1.4 continua lendo e gravando v1.
+  # O bun.lock está na versão 2 do formato, gravada pelo Bun 1.4.
+  # O Dependabot instala o Bun 1.3.14 e lê o formato somente até a versão 1,
+  # então este job falha até o dependabot-core atualizar o binário e o limite.
+  # Contexto: https://github.com/dependabot/dependabot-core/pull/15896
   - package-ecosystem: bun
     directory: /
     schedule:
